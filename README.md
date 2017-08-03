@@ -1,3 +1,3 @@
 # GuysBrushesSlackAPI
 
-## Guy
+## An ordinary Guy
