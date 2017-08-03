@@ -8,10 +8,7 @@
         <Console name="Console" target="SYSTEM_OUT">
             <PatternLayout pattern="%d [%t] %-5level %l - %msg%n"/>
         </Console>
-        <File name="LogFile" fileName="logs/guy.log" immediateFlush="true" append="true">
-            <PatternLayout pattern="%d [%t] %-5level %logger{36} - %msg%n"/>
-        </File>
-        <RollingFile name="RollingFile" filename="logs/guys.log" filePattern="logs/app-%d{dd-MM-yyyy}-%i.log.gz">
+        <RollingFile name="RollingFile" filename="logs/guy.log" filePattern="logs/app-%d{dd-MM-yyyy}-%i.log.gz">
             <PatternLayout>
                 <Pattern>%d [%t] %-5level %logger{36} - %msg%n</Pattern>
             </PatternLayout>
@@ -24,7 +21,6 @@
     <Loggers>
         <Root level="debug">
             <AppenderRef ref="Console"/>
-            <AppenderRef ref="LogFile" />
             <AppenderRef ref="RollingFile" />
         </Root>
     </Loggers>
