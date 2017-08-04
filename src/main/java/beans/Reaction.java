@@ -41,6 +41,13 @@ public class Reaction {
     }
 
     //  METHODES
+    public boolean addUser(String user) {
+        return users.add(user);
+    }
+
+    public void incrementCount() {
+        count++;
+    }
 
     @Override
     public String toString() {
