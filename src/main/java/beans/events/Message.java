@@ -10,12 +10,11 @@ public class Message extends Event {
     private String subtype;
     private String timestamp;
     private List<Reaction> reactions;
-    private String channel;
+
 
     public Message(String user, String channel, String text, String subtype, String timestamp, List<Reaction> reactions) {
-        super();
+        super(channel);
         this.user = user;
-        this.channel = channel;
         this.text = text;
         this.subtype = subtype;
         this.timestamp = timestamp;
@@ -43,15 +42,7 @@ public class Message extends Event {
         return reactions;
     }
 
-    public String getChannel() {
-        return channel;
-    }
-
     //  SETTERS
-    public void setChannel(String channel) {
-        this.channel = channel;
-    }
-
     public void setUser(String user) {
         this.user = user;
     }
