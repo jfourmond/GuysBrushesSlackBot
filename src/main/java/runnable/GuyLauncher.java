@@ -1,23 +1,22 @@
 package runnable;
 
 import api.SlackAPI;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import bot.Guy;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import bot.Guy;
 
 import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class GuyLauncher {
-    private static final Logger Log = LogManager.getLogger(GuyLauncher.class);
-
     private static SlackAPI api = new SlackAPI();
 
     private static final String URL = "url";
     private static final String ID = "id";
+
+    private static final int DURATION = 1;
+    private static final TimeUnit UNIT = TimeUnit.MINUTES;
 
     public static void main(String args[]) {
         Map<String, String> map;
@@ -52,7 +51,7 @@ public class GuyLauncher {
 
             System.out.println("Connecting to : " + echoUri);
 
-            socket.awaitClose(1, TimeUnit.MINUTES);
+            socket.awaitClose(DURATION, UNIT);
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
