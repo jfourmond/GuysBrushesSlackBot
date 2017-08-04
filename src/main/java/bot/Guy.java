@@ -41,6 +41,10 @@ public class Guy {
     private List<Channel> channels;     // Channels où le bot est présent
     private Map<String, List<Reaction>> reactions;
 
+    //  INFORMATION DE DUREE
+    private int duration;
+    private TimeUnit unit;
+
     private final CountDownLatch closeLatch;
     private Session session;
 
@@ -96,6 +100,8 @@ public class Guy {
     }
 
     public boolean awaitClose(int duration, TimeUnit unit) throws InterruptedException {
+        this.duration = duration;
+        this.unit = unit;
         return this.closeLatch.await(duration, unit);
     }
 
@@ -117,7 +123,7 @@ public class Guy {
 
             Future<Void> fut0 = null;
             try {
-                fut0 = sendMessage("Bonjour tout le monde ! :heart: Je ne serais présent que pendant 1 minute !", channel.getId());
+                fut0 = sendMessage("Bonjour tout le monde ! :heart: Je ne serais présent que pendant " + duration + " " + unit.name().toLowerCase() + " !", channel.getId());
                 fut0.get(2, TimeUnit.SECONDS);
             } catch (ExecutionException | InterruptedException e) {
                 // L'envoi a échoué
@@ -139,8 +145,6 @@ public class Guy {
                 e.printStackTrace();
                 fut0.cancel(true);
             }
-
-
         });
     }
 
@@ -181,6 +185,7 @@ public class Guy {
         }
 
         if (M != null && M.getSubtype() == null && !M.getUser().equals(botId)) {
+            // TRAITEMENT DU MESSAGE
             Message finalM = M;
             Optional<Member> member = members.stream().filter(m -> m.getId().equals(finalM.getUser())).findFirst();
             if (member.isPresent() && !saidHi.get(member.get().getId())) {
@@ -216,14 +221,32 @@ public class Guy {
                 }
             }
         }
+
+        if(RA != null) {
+            // TRAITEMENT DE LA REACTION AJOUTE
+            List<Reaction> channelReactions = reactions.get(RA.getChannel());
+            ReactionAdded finalRA = RA;
+            Optional<Reaction> reactionFound = channelReactions.stream().filter(reaction -> reaction.getName().equals(finalRA.getReaction())).findFirst();
+            if(reactionFound.isPresent()) {
+                reactionFound.get().addUser(RA.getUserId());
+                reactionFound.get().incrementCount();
+            } else {
+                Set<String> users = new HashSet<>();
+                users.add(RA.getUserId());
+                channelReactions.add(new Reaction(RA.getReaction(), 1, users));
+            }
+            Log.info("Ajout d'une réaction");
+        }
     }
 
     @OnWebSocketClose
     public void onClose(int statusCode, String reason) {
         Log.info("Fermeture de la connexion : " + statusCode + " - " + reason);
 
+        //  TODO Rapport d'exécution
+
         this.session = null;
-        this.closeLatch.countDown(); // trigger latch
+        this.closeLatch.countDown();
     }
 
     private Future<Void> sendMessage(String text, String channelId) {
