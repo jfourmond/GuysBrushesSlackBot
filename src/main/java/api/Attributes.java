@@ -9,6 +9,7 @@ public class Attributes {
     public static final String FILES = "files";
     public static final String ID = "id";
     public static final String ITEM = "item";
+    public static final String ITEM_USER = "item_user";
     public static final String HAS_MORE = "has_more";
     public static final String MEMBERS = "members";
     public static final String MESSAGE = "message";
