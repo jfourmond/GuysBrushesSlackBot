@@ -29,14 +29,27 @@ public class SlackAPI {
 
     private static final String API_URL = "https://slack.com/api/";
 
+    private boolean bot;
+
     private JsonReader reader;
 
     private String stringUrl;
     private String token;
     private String botToken;
 
-    public SlackAPI() {
+    public SlackAPI(boolean bot) {
+        this.bot = bot;
         build();
+    }
+
+    //  GETTERS
+    public boolean isBot() {
+        return bot;
+    }
+
+    //  SETTERS
+    public void setBot(boolean bot) {
+        this.bot = bot;
     }
 
     //	METHODES
@@ -71,6 +84,7 @@ public class SlackAPI {
      *
      * @param method             méthode de l'API
      * @param optionalParameters paramètres optionnels de la méthode
+     * @param bot                spécifie si l'URL doit s'exécuter en tant que Bot ou Application (modifie le token)
      */
     private void buildUrl(String method, Map<String, String> optionalParameters, boolean bot) {
         StringBuilder sb = new StringBuilder();
@@ -132,6 +146,7 @@ public class SlackAPI {
      *
      * @return la réponse à la requête
      * @throws Exception si l'URL est malformée
+     * @see <a href="https://api.slack.com/methods/api.test">https://api.slack.com/methods/api.test</a>
      */
     public String test() throws Exception {
         Log.info("Test de l'API");
@@ -145,6 +160,7 @@ public class SlackAPI {
      *
      * @return la réponse à la requête
      * @throws Exception si l'URL est malformée
+     * @see <a href="https://api.slack.com/methods/auth.test">https://api.slack.com/methods/auth.test</a>
      */
     public String authentificationTest() throws Exception {
         Log.info("Test de l'authentification");
@@ -158,6 +174,7 @@ public class SlackAPI {
      *
      * @return une {@link Map} possédant deux clés, URL et ID
      * @throws Exception si l'URL est malformée
+     * @see <a href="https://api.slack.com/methods/rtm.connect">https://api.slack.com/methods/rtm.connect</a>
      */
     public Map<String, String> connect() throws Exception {
         Log.info("Demande d'une URL de connection");
@@ -206,6 +223,7 @@ public class SlackAPI {
      *
      * @return une liste des channels
      * @throws Exception si l'URL est mal formée
+     * @see <a href="https://api.slack.com/methods/channels.list">https://api.slack.com/methods/channels.list</a>
      */
     public List<Channel> listChannels() throws Exception {
         Log.info("Enumération des channels");
@@ -250,6 +268,7 @@ public class SlackAPI {
      * @param userId    identifiant de l'utilisateur sur lequel filtrer
      * @return une paire {@link List} de {@link File}s et de {@link Paging}
      * @throws Exception Si l'URL est mal formée
+     * @see <a href="https://api.slack.com/methods/files.list">https://api.slack.com/methods/files.list</a>
      */
     public Map.Entry<List<File>, Paging> listFiles(@Nullable String channelId, @Nullable Integer count, @Nullable Integer page, @Nullable String userId) throws Exception {
         Log.info("Enumération des fichiers");
@@ -332,6 +351,7 @@ public class SlackAPI {
      *
      * @return une liste de membre
      * @throws Exception Si l'URL est mal formée
+     * @see <a href="https://api.slack.com/methods/users.list">https://api.slack.com/methods/users.list</a>
      */
     public List<Member> listMembers() throws Exception {
         Log.info("Listage des membres");
@@ -380,6 +400,7 @@ public class SlackAPI {
      * @param username  nom du bot
      * @return la réponse à la réquête
      * @throws Exception si l'URL est malformée
+     * @see <a href="https://api.slack.com/methods/chat.postMessage">https://api.slack.com/methods/chat.postMessage</a>
      */
     public String postMessage(String channelId, String text, @Nullable String iconUrl, @Nullable String username) throws Exception {
         Log.info("Envoi d'un message");
@@ -390,7 +411,84 @@ public class SlackAPI {
         if (iconUrl != null) parameters.put("icon_url", URLEncoder.encode(iconUrl, "UTF-8"));
         if (username != null) parameters.put("username", username);
         // Construction de l'URL
-        buildUrl(METHOD_CHAT_POST_MESSAGE, parameters, false);
+        buildUrl(METHOD_CHAT_POST_MESSAGE, parameters, bot);
+        // Lecture de l'URL
+        return readUrl();
+    }
+
+    /**
+     * Appel à la méthode "chat.update"
+     * Met à jour un message dans un channel
+     *
+     * @param channelId   identifiant du channel
+     * @param text        texte à envoyer
+     * @param ts          timestamp du message à éditer
+     * @param asUser      {@code true} pour éditer le message comme un utilisateur authentifié. (Les bots sont considérés comme des utilisateurs authentifiés)
+     * @param attachments Un tableau JSON, see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
+     * @param linkNames   Cherche et lie les noms des channels et des utilisateurs
+     * @param parse       Modifie la manière dont sont traités les messages
+     * @return {@code true} si le message a pu être édité
+     * @throws Exception si l'URL est mal formée
+     * @see <a href="https://api.slack.com/methods/chat.update">https://api.slack.com/methods/chat.update</a>
+     */
+    public boolean updateMEssage(String channelId, String text, String ts, @Nullable Boolean asUser, @Nullable String attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception {
+        Log.info("Edition d'un message");
+        boolean ok = false;
+        // Construction des paramètres
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("channel", channelId);
+        parameters.put("text", URLEncoder.encode(text, "UTF-8"));
+        parameters.put("ts", ts);
+        if (asUser != null) parameters.put("as_user", asUser.toString());
+        if (attachments != null) parameters.put("attachments", attachments);
+        if (linkNames != null) parameters.put("link_names", linkNames.toString());
+        if (parse != null) parameters.put("parse", parse);
+        // Construction de l'URL
+        buildUrl(METHOD_CHAT_UPDATE, parameters, false);
+        // Lecture de l'URL
+        String json = readUrl();
+        reader = new JsonReader(new StringReader(json));
+        reader.beginObject();
+        ok = readOk(reader);
+        if (!ok) {
+            System.err.println(json);
+            // Récupération du message d'erreur
+            throw new Exception(readError(reader));
+        } else
+            while (reader.hasNext()) reader.skipValue();
+        reader.endObject();
+
+        return ok;
+    }
+
+    /**
+     * Appel à la méthode "chat.postEphemeral"
+     * Poste un message éphémère, visible seulement à l'utilisateur assigné, à un channel publique, channel privé, ou message directe
+     *
+     * @param channelId   identifiant du channel
+     * @param text        texte à envoyer
+     * @param userId      identifiant de l'utilisateur
+     * @param asUser      {@code true} pour envoyer le message comme un utilisateur authentifié. (Les bots sont considérés comme des utilisateurs authentifiés)
+     * @param attachments Un tableau JSON, see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
+     * @param linkNames   Cherche et lie les noms des channels et des utilisateurs
+     * @param parse       Modifie la manière dont sont traités les messages
+     * @return la réponse à la requête
+     * @throws Exception si l'URL est mal formée
+     * @see <a href="https://api.slack.com/methods/chat.postEphemeral">https://api.slack.com/methods/chat.postEphemeral</a>
+     */
+    public String postEphemeral(String channelId, String text, String userId, @Nullable Boolean asUser, @Nullable String attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception {
+        Log.info("Envoi d'un message ephémère");
+        //  Construction des paramètres optionnels
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("channel", channelId);
+        parameters.put("text", URLEncoder.encode(text, "UTF-8"));
+        parameters.put("user", userId);
+        if (asUser != null) parameters.put("as_user", asUser.toString());
+        if (attachments != null) parameters.put("attachments", attachments);
+        if (linkNames != null) parameters.put("link_names", linkNames.toString());
+        if (parse != null) parameters.put("parse", parse);
+        // Construction de l'URL
+        buildUrl(METHOD_CHAT_POST_EPHEMERAL, parameters, bot);
         // Lecture de l'URL
         return readUrl();
     }
@@ -404,6 +502,7 @@ public class SlackAPI {
      * @param file         fichier de la réaction
      * @param fileComment  commentaire du fichier de la réaction
      * @param timestamp    identifiant du message de la réaction
+     * @see <a href="https://api.slack.com/methods/reactions.add">https://api.slack.com/methods/reactions.add</a>
      */
     public void addReaction(String reactionName, @Nullable String channelId, @Nullable String file, @Nullable String fileComment, @Nullable String timestamp) throws Exception {
         Log.info("Ajout d'une réaction");
@@ -416,7 +515,7 @@ public class SlackAPI {
         if (fileComment != null) parameters.put("file_comment", fileComment);
         if (timestamp != null) parameters.put("timestamp", timestamp);
         // Construction de l'URL
-        buildUrl(METHOD_REACTION_ADD, parameters, true);
+        buildUrl(METHOD_REACTION_ADD, parameters, bot);
         //  Lecture de l'URL
         String json = readUrl();
         reader = new JsonReader(new StringReader(json));
@@ -441,6 +540,7 @@ public class SlackAPI {
      * @param oldest    début de la fourchette de temps des messages à inclure dans la réponse
      * @param unread    inclusion de la variable "unread_count_display" dans la réponse (?)
      * @return une paire {@link List} de {@link Message}s et spécifie si d'autres messages peuvent être récupérés par un booléen
+     * @see <a href="https://api.slack.com/methods/channels.history">https://api.slack.com/methods/channels.history</a>
      */
     public Map.Entry<List<Message>, Boolean> fetchMessages(String channelId, @Nullable Integer count, @Nullable Boolean inclusive, @Nullable String latest, @Nullable String oldest, @Nullable Boolean unread) throws Exception {
         Log.info("Récupération des messages du channel \"" + channelId + "\"");
