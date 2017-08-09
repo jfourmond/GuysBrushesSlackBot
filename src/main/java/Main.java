@@ -19,7 +19,7 @@ public class Main {
     }
 
     public static void main(String args[]) throws Exception {
-        api = new SlackAPI();
+        api = new SlackAPI(false);
         reactions = new ArrayList<>();
         messages = new ArrayList<>();
         reactionsCountTotal = 0;

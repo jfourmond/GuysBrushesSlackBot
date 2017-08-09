@@ -7,7 +7,7 @@ import java.util.List;
 
 public class ListFiles {
     public static void main(String args[]) throws Exception {
-        SlackAPI api = new SlackAPI();
+        SlackAPI api = new SlackAPI(false);
 
         List<File> files = api.listAllFiles(null, null, null);
 

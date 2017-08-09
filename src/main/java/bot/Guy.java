@@ -59,7 +59,7 @@ public class Guy {
 
     private void initialisation() throws Exception {
         //  API
-        api = new SlackAPI();
+        api = new SlackAPI(true);
         //  RECHERCHE DES MEMBRES
         saidHi = new HashMap<>();
         members = api.listMembers();
@@ -135,7 +135,7 @@ public class Guy {
             }
 
             try {
-                fut0 = sendMessage(reactionCount + " Réactions dans le channel !", channel.getId());
+                fut0 = sendMessage(reactionCount + " réactions dans le channel !", channel.getId());
                 fut0.get(2, TimeUnit.SECONDS);
             } catch (ExecutionException | InterruptedException e) {
                 // L'envoi a échoué

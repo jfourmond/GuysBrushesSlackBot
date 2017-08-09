@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class GuyLauncher {
-    private static SlackAPI api = new SlackAPI();
+    private static SlackAPI api = new SlackAPI(true);
 
     private static final String URL = "url";
     private static final String ID = "id";
