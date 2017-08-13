@@ -30,6 +30,9 @@ public class Guy {
     private static final String REACTION_ADDED = "reaction_added";
     private static final String TYPE = "type";
 
+    private static final String GOOGLE_SOLITAIRE = "https://www.google.com/logos/fnbx/solitaire/standalone.html";
+    private static final String GOOGLE_TIC_TAC_TOE = "https://www.google.com/fbx?fbx=tic_tac_toe";
+
     private Map<String, Boolean> saidHi;
 
     // API SLACK
@@ -151,10 +154,13 @@ public class Guy {
     @OnWebSocketMessage
     public void onMessage(String message) {
         Log.info("Event reçu");
-        System.out.println(message);
+        Future<Void> fut = null;
         Message M = null;
         ReactionAdded RA = null;
+
+        System.out.println(message);
         JsonReader reader = new JsonReader(new StringReader(message));
+
         String name;
         try {
             reader.beginObject();
@@ -187,38 +193,56 @@ public class Guy {
         if (M != null && M.getSubtype() == null && !M.getUser().equals(botId)) {
             // TRAITEMENT DU MESSAGE
             Message finalM = M;
+            // Récupération de l'utilisateur concerné
             Optional<Member> member = members.stream().filter(m -> m.getId().equals(finalM.getUser())).findFirst();
-            if (member.isPresent() && !saidHi.get(member.get().getId())) {
-                Future<Void> fut = null;
-                try {
-                    fut = session.getRemote().sendStringByFuture(
-                            "{ " +
-                                    "\"type\" : \"message\", " +
-                                    "\"text\" : \"Salut " + member.get().getName() + " ! :wave: \"," +
-                                    "\"channel\" : \"" + M.getChannel() + "\"" +
-                                    "}");
-                    fut.get(2, TimeUnit.SECONDS);
-                    if (fut.isDone())
-                        saidHi.put(member.get().getId(), true);
-                } catch (ExecutionException | InterruptedException e) {
-                    // L'envoi a échoué
-                    e.printStackTrace();
-                } catch (TimeoutException e) {
-                    // Timeout
-                    e.printStackTrace();
-                    if (fut != null)
+            if(hasBeenCited(M) && member.isPresent()) {
+                if(!saidHi.get(member.get().getId())) {
+                    fut = sendMessage("Salut <@" + member.get().getId() + "> ! :wave: ", M.getChannel());
+                    try {
+                        fut.get(2, TimeUnit.SECONDS);
+                        if (fut.isDone())
+                            saidHi.put(member.get().getId(), true);
+                    } catch (ExecutionException | InterruptedException e) {
+                        // L'envoi a échoué
+                        e.printStackTrace();
+                    } catch (TimeoutException e) {
+                        // Timeout
+                        e.printStackTrace();
                         fut.cancel(true);
-                }
-            } else {
-                try {
-                    if (hasBeenCited(M)) {
-                        api.addReaction("wave", M.getChannel(), null, null, M.getTimestamp());
-                    } else {
-                        api.addReaction("neutral_face", M.getChannel(), null, null, M.getTimestamp());
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
+                if(M.getText().toLowerCase().contains("solitaire")) {
+                    try {
+                        api.addReaction("ok_hand", M.getChannel(), null, null, M.getTimestamp());
+                        fut = sendMessage("<@"+ member.get().getId() + "> " + GOOGLE_SOLITAIRE, M.getChannel());
+                        fut.get(2, TimeUnit.SECONDS);
+                    } catch (ExecutionException | InterruptedException e) {
+                        // L'envoi a échoué
+                        e.printStackTrace();
+                    } catch (TimeoutException e) {
+                        // Timeout
+                        e.printStackTrace();
+                        fut.cancel(true);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else if(M.getText().toLowerCase().contains("tic tac toe") || M.getText().toLowerCase().contains("morpion")) {
+                    try {
+                        api.addReaction("ok_hand", M.getChannel(), null, null, M.getTimestamp());
+                        fut = sendMessage("<@"+ member.get().getId() + "> " + GOOGLE_TIC_TAC_TOE, M.getChannel());
+                        fut.get(2, TimeUnit.SECONDS);
+                    } catch (ExecutionException | InterruptedException e) {
+                        // L'envoi a échoué
+                        e.printStackTrace();
+                    } catch (TimeoutException e) {
+                        // Timeout
+                        e.printStackTrace();
+                        fut.cancel(true);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
             }
         }
 
@@ -259,6 +283,6 @@ public class Guy {
     }
 
     private boolean hasBeenCited(Message M) {
-        return M.getText().contains("<@U6E9ZNAJC>");
+        return (M.getText().contains("<@U6E9ZNAJC>") || M.getText().toLowerCase().contains("guy"));
     }
 }
