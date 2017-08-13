@@ -1,9 +1,7 @@
 package api;
 
-import beans.Channel;
+import beans.*;
 import beans.File;
-import beans.Member;
-import beans.Paging;
 import beans.events.Message;
 import com.google.gson.stream.JsonReader;
 import com.sun.istack.internal.Nullable;
@@ -16,8 +14,8 @@ import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.*;
 
-import static api.Methods.*;
 import static api.Attributes.*;
+import static api.Methods.*;
 import static converter.Converter.*;
 
 public class SlackAPI {
@@ -398,11 +396,12 @@ public class SlackAPI {
      * @param text      texte à envoyer
      * @param iconUrl   URL d'une image utilisée comme icône au message
      * @param username  nom du bot
+     * @param attachments Un tableau JSON de pièce jointes, {@link Attachment} see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
      * @return la réponse à la réquête
      * @throws Exception si l'URL est malformée
      * @see <a href="https://api.slack.com/methods/chat.postMessage">https://api.slack.com/methods/chat.postMessage</a>
      */
-    public String postMessage(String channelId, String text, @Nullable String iconUrl, @Nullable String username) throws Exception {
+    public String postMessage(String channelId, String text, @Nullable String iconUrl, @Nullable String username, @Nullable Attachment[] attachments) throws Exception {
         Log.info("Envoi d'un message");
         //  Construction des paramètres optionnels
         Map<String, String> parameters = new HashMap<>();
@@ -410,6 +409,7 @@ public class SlackAPI {
         parameters.put("text", URLEncoder.encode(text, "UTF-8"));
         if (iconUrl != null) parameters.put("icon_url", URLEncoder.encode(iconUrl, "UTF-8"));
         if (username != null) parameters.put("username", username);
+        if(attachments != null) parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
         // Construction de l'URL
         buildUrl(METHOD_CHAT_POST_MESSAGE, parameters, bot);
         // Lecture de l'URL
@@ -424,14 +424,14 @@ public class SlackAPI {
      * @param text        texte à envoyer
      * @param ts          timestamp du message à éditer
      * @param asUser      {@code true} pour éditer le message comme un utilisateur authentifié. (Les bots sont considérés comme des utilisateurs authentifiés)
-     * @param attachments Un tableau JSON, see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
+     * @param attachments Un tableau JSON de pièce jointes, {@link Attachment} see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
      * @param linkNames   Cherche et lie les noms des channels et des utilisateurs
      * @param parse       Modifie la manière dont sont traités les messages
      * @return {@code true} si le message a pu être édité
      * @throws Exception si l'URL est mal formée
      * @see <a href="https://api.slack.com/methods/chat.update">https://api.slack.com/methods/chat.update</a>
      */
-    public boolean updateMEssage(String channelId, String text, String ts, @Nullable Boolean asUser, @Nullable String attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception {
+    public boolean updateMEssage(String channelId, String text, String ts, @Nullable Boolean asUser, @Nullable Attachment[] attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception {
         Log.info("Edition d'un message");
         boolean ok = false;
         // Construction des paramètres
@@ -440,7 +440,7 @@ public class SlackAPI {
         parameters.put("text", URLEncoder.encode(text, "UTF-8"));
         parameters.put("ts", ts);
         if (asUser != null) parameters.put("as_user", asUser.toString());
-        if (attachments != null) parameters.put("attachments", attachments);
+        if (attachments != null) parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
         if (linkNames != null) parameters.put("link_names", linkNames.toString());
         if (parse != null) parameters.put("parse", parse);
         // Construction de l'URL
@@ -469,14 +469,14 @@ public class SlackAPI {
      * @param text        texte à envoyer
      * @param userId      identifiant de l'utilisateur
      * @param asUser      {@code true} pour envoyer le message comme un utilisateur authentifié. (Les bots sont considérés comme des utilisateurs authentifiés)
-     * @param attachments Un tableau JSON, see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
+     * @param attachments Un tableau JSON de pièce jointes, {@link Attachment} see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
      * @param linkNames   Cherche et lie les noms des channels et des utilisateurs
      * @param parse       Modifie la manière dont sont traités les messages
      * @return la réponse à la requête
      * @throws Exception si l'URL est mal formée
      * @see <a href="https://api.slack.com/methods/chat.postEphemeral">https://api.slack.com/methods/chat.postEphemeral</a>
      */
-    public String postEphemeral(String channelId, String text, String userId, @Nullable Boolean asUser, @Nullable String attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception {
+    public String postEphemeral(String channelId, String text, String userId, @Nullable Boolean asUser, @Nullable Attachment[] attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception {
         Log.info("Envoi d'un message ephémère");
         //  Construction des paramètres optionnels
         Map<String, String> parameters = new HashMap<>();
@@ -484,7 +484,7 @@ public class SlackAPI {
         parameters.put("text", URLEncoder.encode(text, "UTF-8"));
         parameters.put("user", userId);
         if (asUser != null) parameters.put("as_user", asUser.toString());
-        if (attachments != null) parameters.put("attachments", attachments);
+        if (attachments != null) parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
         if (linkNames != null) parameters.put("link_names", linkNames.toString());
         if (parse != null) parameters.put("parse", parse);
         // Construction de l'URL
@@ -609,5 +609,22 @@ public class SlackAPI {
             messages.addAll(messagesFetched.getKey());
         }
         return messages;
+    }
+
+    /**
+     * Conversion du tableau de {@link Attachment} en une chaîne de caractère JSON
+     * @param attachments un tableau de pièce jointe, {@link Attachment}
+     * @return un chaîne de caractère JSON
+     */
+    private static String AttachmentsToJson(Attachment[] attachments) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for(int i=0; i<attachments.length ; i++) {
+            sb.append(attachments[i].json());
+            if(i != attachments.length-1)
+                sb.append(",");
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }
