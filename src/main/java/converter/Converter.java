@@ -1,6 +1,11 @@
 package converter;
 
-import beans.*;
+import beans.File;
+import beans.Member;
+import beans.Paging;
+import beans.Reaction;
+import beans.channels.Channel;
+import beans.channels.ChannelType;
 import beans.events.Message;
 import beans.events.ReactionAdded;
 import com.google.gson.stream.JsonReader;
@@ -16,32 +21,35 @@ import static api.Attributes.*;
 public class Converter {
     /**
      * Retourne le statut "ok" du JSON
+     *
      * @param reader
      * @return le statut "ok" du JSON
      * @throws Exception si une erreur est détectée lors de la lecture, ou s'il n'existe pas d'attribut "ok"
      */
     public static boolean readOk(JsonReader reader) throws Exception {
         String name = reader.nextName();
-        if(name.equals(OK))
+        if (name.equals(OK))
             return reader.nextBoolean();
         throw new Exception("Pas d'attribut \"ok\"");
     }
 
     /**
      * Retourne l'erreur du JSON
+     *
      * @param reader
      * @return l'erreur du JSON
      * @throws Exception si une erreur est détectée lors de la lecture, ou s'il n'existe pas d'attribut "error"
      */
     public static String readError(JsonReader reader) throws Exception {
         String name = reader.nextName();
-        if(name.equals(ERROR))
+        if (name.equals(ERROR))
             return reader.nextString();
         throw new Exception("Pas d'attribut \"error\"");
     }
 
     /**
      * Lecture des channels dans le JSON
+     *
      * @param reader
      * @return une liste de {@link Channel}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -49,7 +57,7 @@ public class Converter {
     public static List<Channel> readChannels(JsonReader reader) throws IOException {
         List<Channel> channels = new ArrayList<>();
         reader.beginArray();
-        while(reader.hasNext())
+        while (reader.hasNext())
             channels.add(readChannel(reader));
         reader.endArray();
         return channels;
@@ -57,6 +65,7 @@ public class Converter {
 
     /**
      * Lecture du channel dans le JSON
+     *
      * @param reader
      * @return un {@link Channel}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -66,10 +75,11 @@ public class Converter {
         String id = null, name = null;
         List<String> members = new ArrayList<>();
         int numMembers = 0;
+        ChannelType type;
         reader.beginObject();
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             aux = reader.nextName();
-            switch(aux) {
+            switch (aux) {
                 case ID:
                     id = reader.nextString();
                     break;
@@ -78,7 +88,7 @@ public class Converter {
                     break;
                 case MEMBERS:
                     reader.beginArray();
-                    while(reader.hasNext())
+                    while (reader.hasNext())
                         members.add(reader.nextString());
                     reader.endArray();
                     break;
@@ -96,6 +106,7 @@ public class Converter {
 
     /**
      * Retourne l'Event "message" du JSON
+     *
      * @param reader
      * @return l'Event "message" du JSON
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -103,25 +114,25 @@ public class Converter {
     public static Message readMessageSent(JsonReader reader) throws IOException {
         String name;
         String user = null, channel = null, text = null, subtype = null, timestamp = null;
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             name = reader.nextName();
-            switch(name) {
-                case CHANNEL :
+            switch (name) {
+                case CHANNEL:
                     channel = reader.nextString();
                     break;
-                case TEXT :
+                case TEXT:
                     text = reader.nextString();
                     break;
-                case TS :
+                case TS:
                     timestamp = reader.nextString();
                     break;
                 case SUBTYPE:
                     subtype = reader.nextString();
                     break;
-                case USER :
+                case USER:
                     user = reader.nextString();
                     break;
-                default :
+                default:
                     reader.skipValue();
             }
         }
@@ -130,6 +141,7 @@ public class Converter {
 
     /**
      * Retourne l'Event "réaction_added" du JSON
+     *
      * @param reader
      * @return une {@link ReactionAdded}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -137,14 +149,14 @@ public class Converter {
     public static ReactionAdded readReactionAdded(JsonReader reader) throws IOException {
         String name;
         String user = null, itemTs = null, itemType = null, itemChannel = null, reaction = null, timestamp = null, itemUser = null;
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             name = reader.nextName();
-            switch(name) {
-                case ITEM :
+            switch (name) {
+                case ITEM:
                     reader.beginObject();
-                    while(reader.hasNext()){
+                    while (reader.hasNext()) {
                         name = reader.nextName();
-                        switch(name) {
+                        switch (name) {
                             case CHANNEL:
                                 itemChannel = reader.nextString();
                                 break;
@@ -164,16 +176,16 @@ public class Converter {
                 case ITEM_USER:
                     itemUser = reader.nextString();
                     break;
-                case REACTION :
+                case REACTION:
                     reaction = reader.nextString();
                     break;
-                case TS :
+                case TS:
                     timestamp = reader.nextString();
                     break;
-                case USER :
+                case USER:
                     user = reader.nextString();
                     break;
-                default :
+                default:
                     reader.skipValue();
                     break;
             }
@@ -183,6 +195,7 @@ public class Converter {
 
     /**
      * Lecture des fichiers dans le JSON
+     *
      * @param reader
      * @return une liste de {@link File}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -190,7 +203,7 @@ public class Converter {
     public static List<File> readFiles(JsonReader reader) throws IOException {
         List<File> files = new ArrayList<>();
         reader.beginArray();
-        while(reader.hasNext())
+        while (reader.hasNext())
             files.add(readFile(reader));
         reader.endArray();
         return files;
@@ -198,6 +211,7 @@ public class Converter {
 
     /**
      * Lecture du fichier dans le JSON
+     *
      * @param reader
      * @return un {@link File}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -207,9 +221,9 @@ public class Converter {
         long created = 0;
         String id = null, name = null, title = null, user = null;
         reader.beginObject();
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             aux = reader.nextName();
-            switch(aux) {
+            switch (aux) {
                 case ID:
                     id = reader.nextString();
                     break;
@@ -236,6 +250,7 @@ public class Converter {
 
     /**
      * Lecture du Paging dans le JSON
+     *
      * @param reader
      * @return un {@link Paging}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -244,9 +259,9 @@ public class Converter {
         String name;
         Integer count = null, total = null, page = null, pages = null;
         reader.beginObject();
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             name = reader.nextName();
-            switch(name) {
+            switch (name) {
                 case COUNT:
                     count = reader.nextInt();
                     break;
@@ -270,6 +285,7 @@ public class Converter {
 
     /**
      * Lecture des membres dans le JSON
+     *
      * @param reader
      * @return une liste de {@link Member}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -277,7 +293,7 @@ public class Converter {
     public static List<Member> readMembers(JsonReader reader) throws IOException {
         List<Member> users = new ArrayList<>();
         reader.beginArray();
-        while(reader.hasNext())
+        while (reader.hasNext())
             users.add(readMember(reader));
         reader.endArray();
         return users;
@@ -285,6 +301,7 @@ public class Converter {
 
     /**
      * Lecture du membre dans le JSON
+     *
      * @param reader
      * @return un {@link Member}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -293,9 +310,9 @@ public class Converter {
         String aux;
         String id = null, name = null, realName = null;
         reader.beginObject();
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             aux = reader.nextName();
-            switch(aux) {
+            switch (aux) {
                 case ID:
                     id = reader.nextString();
                     break;
@@ -317,7 +334,7 @@ public class Converter {
     public static List<Message> readMessages(JsonReader reader) throws IOException {
         List<Message> messages = new ArrayList<>();
         reader.beginArray();
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             messages.add(readMessage(reader));
         }
         reader.endArray();
@@ -326,6 +343,7 @@ public class Converter {
 
     /**
      * Lecture de l'attribut "self" du JSON
+     *
      * @param reader
      * @return le contenu de l'attribut "self" du JSON
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -333,10 +351,10 @@ public class Converter {
     public static String readSelf(JsonReader reader) throws IOException {
         String name, self = null;
         reader.beginObject();
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             name = reader.nextName();
-            switch(name) {
-                case ID :
+            switch (name) {
+                case ID:
                     self = reader.nextString();
                     break;
                 default:
@@ -350,6 +368,7 @@ public class Converter {
 
     /**
      * Lecture du message du JSON
+     *
      * @param reader
      * @return un {@link Message}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -359,7 +378,7 @@ public class Converter {
         String user = null, channel = null, text = null, subtype = null, timestamp = null;
         List<Reaction> reactions = null;
         reader.beginObject();
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             name = reader.nextName();
             try {
                 switch (name) {
@@ -384,7 +403,7 @@ public class Converter {
                     default:
                         reader.skipValue();
                 }
-            }catch (IllegalStateException e) {
+            } catch (IllegalStateException e) {
                 e.printStackTrace();
                 reader.skipValue();
             }
@@ -395,6 +414,7 @@ public class Converter {
 
     /**
      * Lecture des réactions dans le JSON
+     *
      * @param reader
      * @return une liste de {@link Reaction}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -402,7 +422,7 @@ public class Converter {
     public static List<Reaction> readReactions(JsonReader reader) throws IOException {
         List<Reaction> reactions = new ArrayList<>();
         reader.beginArray();
-        while(reader.hasNext())
+        while (reader.hasNext())
             reactions.add(readReaction(reader));
         reader.endArray();
         return reactions;
@@ -410,6 +430,7 @@ public class Converter {
 
     /**
      * Lecture d'une réaction dans le JSON
+     *
      * @param reader
      * @return une {@link Reaction}
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -419,9 +440,9 @@ public class Converter {
         Set<String> users = null;
         Integer count = null;
         reader.beginObject();
-        while(reader.hasNext()) {
+        while (reader.hasNext()) {
             aux = reader.nextName();
-            switch(aux) {
+            switch (aux) {
                 case NAME:
                     name = reader.nextString();
                     break;
@@ -442,6 +463,7 @@ public class Converter {
 
     /**
      * Lecture des utilisateurs d'une réaction dans le JSON
+     *
      * @param reader
      * @return un ensemble d'utilisateurs
      * @throws IOException si une erreur est détectée lors de la lecture
@@ -449,7 +471,7 @@ public class Converter {
     public static Set<String> readReactionUsers(JsonReader reader) throws IOException {
         Set<String> users = new HashSet<>();
         reader.beginArray();
-        while(reader.hasNext())
+        while (reader.hasNext())
             users.add(reader.nextString());
         reader.endArray();
         return users;
