@@ -1,4 +1,4 @@
-package beans;
+package beans.channels;
 
 import java.util.List;
 
@@ -8,11 +8,26 @@ public class Channel {
     private int numMembers;
     private List<String> members;
 
+    private ChannelType type;
+
     public Channel(String id, String name, int numMembers, List<String> members) {
         this.id = id;
         this.name = name;
         this.numMembers = numMembers;
         this.members = members;
+
+        // Le type est déterminé par la première lettre de l'ID
+        switch (id.charAt(0)) {
+            case 'C':
+                type = ChannelType.PUBLIC;
+                break;
+            case 'D':
+                type = ChannelType.DIRECT_MESSAGE;
+                break;
+            default:
+                type = ChannelType.PRIVATE;
+                break;
+        }
     }
 
     //  GETTERS
@@ -32,6 +47,10 @@ public class Channel {
         return members;
     }
 
+    public ChannelType getType() {
+        return type;
+    }
+
     //  SETTERS
     public void setId(String id) {
         this.id = id;
@@ -49,6 +68,10 @@ public class Channel {
         this.members = members;
     }
 
+    public void setType(ChannelType type) {
+        this.type = type;
+    }
+
     //  METHODES
     @Override
     public String toString() {
@@ -57,6 +80,7 @@ public class Channel {
                 ", name='" + name + '\'' +
                 ", numMembers=" + numMembers +
                 ", members=" + members +
+                ", type=" + type +
                 '}';
     }
 }
