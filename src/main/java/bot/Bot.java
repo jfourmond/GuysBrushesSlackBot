@@ -25,7 +25,7 @@ public abstract class Bot {
 	Session session;
 
 	//  INFORMATION DE DUREE
-	private int duration;
+	int duration;
 	private TimeUnit unit;
 
 	protected Bot(SlackAPI api, String id, String botName) throws Exception {

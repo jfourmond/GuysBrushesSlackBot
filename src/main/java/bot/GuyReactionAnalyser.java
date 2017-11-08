@@ -32,6 +32,8 @@ public class GuyReactionAnalyser extends Bot {
 	private static final String CMD_HELP = "!help";
 	private static final String CMD_STATS = "!stats";
 	private static final String CMD_AWAKE = "!awake";
+	private static final String CMD_REMAINING = "!remaining";
+	private static final String CMD_PLOP = "!plop";
 
 	private static final String BOT_NAME = "Guy";
 
@@ -158,24 +160,7 @@ public class GuyReactionAnalyser extends Bot {
 		Log.info("Réception d'un message publique");
 
 		if (hasBeenCited(M)) {
-			List<String> cmds = getCmd(M.getText());
-			if (cmds.isEmpty()) {
-
-			} else if (cmds.contains(CMD_HELP)) {
-				sendHelpCmd(M.getChannel());
-			} else if (cmds.contains(CMD_STATS)) {
-				// Récupération des stats de l'utilisateur
-				Map<String, Long> reactionsUser = reactionsUser(M.getUser());
-				// Préparation & Envoi du message
-				sendReactionsMessage(reactionsUser, M.getChannel(), "<@" + M.getUser() + "> : ");
-			} else if (cmds.contains(CMD_AWAKE)) {
-				// Ajout d'une réaction pour marquer la présence du bot
-				try {
-					api.addReaction("thumbsup", M.getChannel(), null, null, M.getTimestamp());
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
+			messageTreatment(M);
 		}
 	}
 
@@ -183,25 +168,7 @@ public class GuyReactionAnalyser extends Bot {
 		// Dans le cas d'un message direct, pas besoin de citer le bot
 		// Récupération de l'utilisateur concerné
 		Log.info("Réception d'un message direct : \n" + M);
-
-		List<String> cmds = getCmd(M.getText());
-		if (cmds.isEmpty()) {
-
-		} else if (cmds.contains(CMD_HELP)) {
-			sendHelpCmd(M.getChannel());
-		} else if (cmds.contains(CMD_STATS)) {
-			// Récupération des stats de l'utilisateur
-			Map<String, Long> reactionsUser = reactionsUser(M.getUser());
-			// Préparation & Envoi du message
-			sendReactionsMessage(reactionsUser, M.getChannel(), null);
-		} else if (cmds.contains(CMD_AWAKE)) {
-			// Ajout d'une réaction pour marquer la présence du bot
-			try {
-				api.addReaction("thumbsup", M.getChannel(), null, null, M.getTimestamp());
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
+		messageTreatment(M);
 	}
 
 	/**
@@ -248,8 +215,10 @@ public class GuyReactionAnalyser extends Bot {
 		Log.info("Envoi des commandes de Guy sur le channel : " + channel);
 		String cmds = "Commandes : \\n" +
 				"\\t_*!awake*_ : si vous vous demandez si je suis réveillé\\n" +
-				"\\t_*!stats*_ : statistiques des réactions\\n" +
-				"\\t_*!help*_ : pour apprendre tout ce que je peux vous offrir :heart:";
+				"\\t_*!help*_ : pour apprendre tout ce que j'ai à vous offrir :heart:\\n" +
+				"\\t_*!plop*_ : plop\\n" +
+				"\\t_*!remaining*_ : le temps qu'il me reste...\\n" +
+				"\\t_*!stats*_ : statistiques des réactions";
 		// Envoi du message
 		try {
 			sendMessage(cmds, channel);
@@ -266,9 +235,48 @@ public class GuyReactionAnalyser extends Bot {
 	 */
 	private List<String> getCmd(String text) {
 		List<String> cmds = new ArrayList<>();
-		if (text.contains(CMD_STATS)) cmds.add(CMD_STATS);
 		if (text.contains(CMD_AWAKE)) cmds.add(CMD_AWAKE);
 		if (text.contains(CMD_HELP)) cmds.add(CMD_HELP);
+		if (text.contains(CMD_PLOP)) cmds.add(CMD_PLOP);
+		if (text.contains(CMD_REMAINING)) cmds.add(CMD_REMAINING);
+		if (text.contains(CMD_STATS)) cmds.add(CMD_STATS);
 		return cmds;
+	}
+
+	private void messageTreatment(Message M) {
+		List<String> cmds = getCmd(M.getText());
+		if (cmds.isEmpty()) {
+
+		} else if (cmds.contains(CMD_AWAKE)) {
+			// Ajout d'une réaction pour marquer la présence du bot
+			try {
+				api.addReaction("thumbsup", M.getChannel(), null, null, M.getTimestamp());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (cmds.contains(CMD_HELP)) {
+			sendHelpCmd(M.getChannel());
+			try {
+				sendMessage("plop", M.getChannel());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (cmds.contains(CMD_REMAINING)) {
+			Duration d = Duration.between(startDate, LocalDateTime.now());
+			long remaining = duration - d.toMinutes();
+			try {
+				sendMessage("Il me reste " + remaining + " minutes...", M.getChannel());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (cmds.contains(CMD_STATS)) {
+			// Récupération des stats de l'utilisateur
+			Map<String, Long> reactionsUser = reactionsUser(M.getUser());
+			String prefix = null;
+			if(isPublicChannel(M.getChannel()))
+				prefix = "<@" + M.getUser() + "> : ";
+			// Préparation & Envoi du message
+			sendReactionsMessage(reactionsUser, M.getChannel(), prefix);
+		}
 	}
 }
