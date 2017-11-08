@@ -1,5 +1,6 @@
 package bot;
 
+import api.SlackAPI;
 import beans.Reaction;
 import beans.events.Message;
 import beans.events.ReactionAdded;
@@ -7,6 +8,7 @@ import com.google.gson.stream.JsonReader;
 import com.sun.istack.internal.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 
 import java.io.IOException;
@@ -14,10 +16,6 @@ import java.io.StringReader;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static converter.Converter.readMessageSent;
@@ -31,6 +29,7 @@ public class GuyReactionAnalyser extends Bot {
 	private static final String REACTION_ADDED = "reaction_added";
 	private static final String TYPE = "type";
 
+	private static final String CMD_HELP = "!help";
 	private static final String CMD_STATS = "!stats";
 	private static final String CMD_AWAKE = "!awake";
 
@@ -38,21 +37,36 @@ public class GuyReactionAnalyser extends Bot {
 
 	//  INFORMATION DE SESSION
 	private List<Reaction> reactions;
-
+	private List<String> channels;
 	// DATES
 	private LocalDateTime startDate;
 
-	public GuyReactionAnalyser(String botId) throws Exception {
-		super(botId, BOT_NAME);
+	public GuyReactionAnalyser(SlackAPI api, String botId) throws Exception {
+		super(api, botId, BOT_NAME);
 	}
 
 	@Override
 	protected void initialisation() throws Exception {
 		super.initialisation();
-		// RECHERCHE DES REACTIONS
 		reactions = new ArrayList<>();
-
+		//  RECHERCHE DES CHANNELS
+		channels = new ArrayList<>();
+		api.listChannels().forEach(channel -> {
+			if (channel.getMembers().contains(id))
+				channels.add(channel.getId());
+		});
 		startDate = LocalDateTime.now();
+	}
+
+	public void onConnect(Session session) {
+		super.onConnect(session);
+		channels.forEach(channel -> {
+			try {
+				api.meMessage(channel, "s'est réveillé");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
 	}
 
 	@Override
@@ -128,6 +142,14 @@ public class GuyReactionAnalyser extends Bot {
 		System.out.println(Duration.between(startDate, endDate));
 		System.out.println(reactions);
 
+		channels.forEach(channel -> {
+			try {
+				api.meMessage(channel, "nous a quitté.");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
+
 		this.session = null;
 		this.closeLatch.countDown();
 	}
@@ -138,17 +160,21 @@ public class GuyReactionAnalyser extends Bot {
 		if (hasBeenCited(M)) {
 			List<String> cmds = getCmd(M.getText());
 			if (cmds.isEmpty()) {
-				// Ajout d'une réaction pour marquer la présence du bot
-				try {
-					api.addReaction("wave", M.getChannel(), null, null, M.getTimestamp());
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+
+			} else if (cmds.contains(CMD_HELP)) {
+				sendHelpCmd(M.getChannel());
 			} else if (cmds.contains(CMD_STATS)) {
 				// Récupération des stats de l'utilisateur
 				Map<String, Long> reactionsUser = reactionsUser(M.getUser());
 				// Préparation & Envoi du message
 				sendReactionsMessage(reactionsUser, M.getChannel(), "<@" + M.getUser() + "> : ");
+			} else if (cmds.contains(CMD_AWAKE)) {
+				// Ajout d'une réaction pour marquer la présence du bot
+				try {
+					api.addReaction("thumbsup", M.getChannel(), null, null, M.getTimestamp());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -160,17 +186,21 @@ public class GuyReactionAnalyser extends Bot {
 
 		List<String> cmds = getCmd(M.getText());
 		if (cmds.isEmpty()) {
-			// Ajout d'une réaction pour marquer la présence du bot
-			try {
-				api.addReaction("wave", M.getChannel(), null, null, M.getTimestamp());
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+
+		} else if (cmds.contains(CMD_HELP)) {
+			sendHelpCmd(M.getChannel());
 		} else if (cmds.contains(CMD_STATS)) {
 			// Récupération des stats de l'utilisateur
 			Map<String, Long> reactionsUser = reactionsUser(M.getUser());
 			// Préparation & Envoi du message
 			sendReactionsMessage(reactionsUser, M.getChannel(), null);
+		} else if (cmds.contains(CMD_AWAKE)) {
+			// Ajout d'une réaction pour marquer la présence du bot
+			try {
+				api.addReaction("thumbsup", M.getChannel(), null, null, M.getTimestamp());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -189,14 +219,12 @@ public class GuyReactionAnalyser extends Bot {
 		});
 		// Tri de la map
 		return reactionsUser.entrySet().stream()
-				.sorted(Map.Entry.comparingByValue(Comparator.naturalOrder()))
+				.sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
 				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
 						(oldValue, newValue) -> oldValue, HashMap::new));
 	}
 
 	private void sendReactionsMessage(Map<String, Long> reactionsUser, String channel, @Nullable String prefix) {
-		Future<Void> fut = null;
-
 		StringBuilder sb = new StringBuilder();
 		if (prefix != null) sb.append(prefix);
 		if (reactionsUser.isEmpty())
@@ -204,25 +232,27 @@ public class GuyReactionAnalyser extends Bot {
 		else {
 			sb.append("Vos réactions depuis mon réveil :\\n");
 			reactionsUser.forEach((r, l) -> {
-				sb.append("\\t:");
-				sb.append(r);
-				sb.append(": : *");
-				sb.append(l);
-				sb.append("*\\n");
+				sb.append("\\t:").append(r).append(": : *")
+						.append(l).append("*\\n");
 			});
 		}
-
 		// Envoi du message
 		try {
-			fut = sendMessage(sb.toString(), channel);
-			fut.get(2, TimeUnit.SECONDS);
-		} catch (ExecutionException | InterruptedException e) {
-			// L'envoi a échoué
+			sendMessage(sb.toString(), channel);
+		} catch (Exception e) {
 			e.printStackTrace();
-		} catch (TimeoutException e) {
-			// Timeout
-			e.printStackTrace();
-			fut.cancel(true);
+		}
+	}
+
+	private void sendHelpCmd(String channel) {
+		Log.info("Envoi des commandes de Guy sur le channel : " + channel);
+		String cmds = "Commandes : \\n" +
+				"\\t_*!awake*_ : si vous vous demandez si je suis réveillé\\n" +
+				"\\t_*!stats*_ : statistiques des réactions\\n" +
+				"\\t_*!help*_ : pour apprendre tout ce que je peux vous offrir :heart:";
+		// Envoi du message
+		try {
+			sendMessage(cmds, channel);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -238,6 +268,7 @@ public class GuyReactionAnalyser extends Bot {
 		List<String> cmds = new ArrayList<>();
 		if (text.contains(CMD_STATS)) cmds.add(CMD_STATS);
 		if (text.contains(CMD_AWAKE)) cmds.add(CMD_AWAKE);
+		if (text.contains(CMD_HELP)) cmds.add(CMD_HELP);
 		return cmds;
 	}
 }

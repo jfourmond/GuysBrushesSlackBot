@@ -2,6 +2,8 @@ package runnable;
 
 import api.SlackAPI;
 import bot.GuyReactionAnalyser;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 
@@ -10,12 +12,14 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class GuyReactionAnalyzeLauncher {
+	private static final Logger Log = LogManager.getLogger(GuyReactionAnalyzeLauncher.class);
+
 	private static SlackAPI api = new SlackAPI(true);
 
 	private static final String URL = "url";
 	private static final String ID = "id";
 
-	private static final int DURATION = 120;
+	private static final int DURATION = 1;
 	private static final TimeUnit UNIT = TimeUnit.MINUTES;
 
 	public static void main(String args[]) {
@@ -35,7 +39,7 @@ public class GuyReactionAnalyzeLauncher {
 		WebSocketClient client = new WebSocketClient();
 		GuyReactionAnalyser socket;
 		try {
-			socket = new GuyReactionAnalyser(id);
+			socket = new GuyReactionAnalyser(api, id);
 		} catch (Exception e) {
 			//  Erreur lors de l'appel aux informations
 			e.printStackTrace();
@@ -49,7 +53,7 @@ public class GuyReactionAnalyzeLauncher {
 			ClientUpgradeRequest request = new ClientUpgradeRequest();
 			client.connect(socket, echoUri, request);
 
-			System.out.println("Connecting to : " + echoUri);
+			Log.info("Connecting to : " + echoUri);
 
 			socket.awaitClose(DURATION, UNIT);
 		} catch (Exception e) {

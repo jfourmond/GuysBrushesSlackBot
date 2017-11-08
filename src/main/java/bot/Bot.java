@@ -8,9 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.*;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @WebSocket
 public abstract class Bot {
@@ -30,8 +28,9 @@ public abstract class Bot {
 	private int duration;
 	private TimeUnit unit;
 
-	protected Bot(String id, String botName) throws Exception {
+	protected Bot(SlackAPI api, String id, String botName) throws Exception {
 		Log.info("Création du bot : " + id + "(" + botName + ")");
+		this.api = api;
 		this.id = id;
 		this.name = botName;
 
@@ -46,8 +45,6 @@ public abstract class Bot {
 	 * @throws Exception
 	 */
 	protected void initialisation() throws Exception {
-		//  API
-		api = new SlackAPI(true);
 	}
 
 	/**
@@ -97,20 +94,49 @@ public abstract class Bot {
 	}
 
 	/**
-	 * Envoi un message via le {@link WebSocket}
+	 * Construit un message à envoyer
 	 *
 	 * @param text      : texte à envoyer
-	 * @param channelId : identifiant du {@link beans.channels.Channel} où envoyer le message
+	 * @param channelId identifiant du {@link beans.channels.Channel} où envoyer le message
 	 * @return
 	 */
-	Future<Void> sendMessage(String text, String channelId) {
-		Log.info("Envoi d'un message sur le channel : " + channelId);
-		return session.getRemote().sendStringByFuture(
-				"{ " +
-						"\"type\" : \"message\", " +
-						"\"text\" : \"" + text + "\"," +
-						"\"channel\" : \"" + channelId + "\"" +
-						"}");
+	private Future<Void> buildMessage(String text, String channelId) {
+		return session.getRemote().sendStringByFuture("{ " +
+				"\"type\" : \"message\", " +
+				"\"text\" : \"" + text + "\"," +
+				"\"channel\" : \"" + channelId + "\"" +
+				"}");
+
+	}
+
+	/**
+	 * Envoie un message via le {@link WebSocket}
+	 *
+	 * @param text      : texte à envoyer
+	 * @param channelId : idenfiant du {@link beans.channels.Channel} où envoyer le message
+	 * @throws ExecutionException
+	 * @throws InterruptedException
+	 * @throws TimeoutException
+	 */
+	void sendMessage(String text, String channelId) throws ExecutionException, InterruptedException, TimeoutException {
+		Future<Void> fut = null;
+		// Envoi du message
+		try {
+			fut = buildMessage(text, channelId);
+			fut.get(2, TimeUnit.SECONDS);
+		} catch (ExecutionException | InterruptedException e) {
+			// L'envoi a échoué
+			e.printStackTrace();
+			throw (e);
+		} catch (TimeoutException e) {
+			// Timeout
+			e.printStackTrace();
+			fut.cancel(true);
+			throw (e);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw (e);
+		}
 	}
 
 	/**
