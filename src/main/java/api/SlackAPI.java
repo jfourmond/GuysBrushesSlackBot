@@ -60,8 +60,7 @@ public class SlackAPI {
 
 		ClassLoader classLoader = getClass().getClassLoader();
 		InputStream propertyFile = null;
-		URL url = classLoader.getResource(PROPERTIES_FILE);
-		System.out.println(url);
+
 		try {
 			propertyFile = new FileInputStream(classLoader.getResource(PROPERTIES_FILE).getFile());
 		} catch (FileNotFoundException e) {
@@ -403,7 +402,8 @@ public class SlackAPI {
 	 * @throws Exception si l'URL est malformée
 	 * @see <a href="https://api.slack.com/methods/chat.postMessage">https://api.slack.com/methods/chat.postMessage</a>
 	 */
-	public String postMessage(String channelId, String text, @Nullable String iconUrl, @Nullable String username, @Nullable Attachment[] attachments) throws Exception {
+	public String postMessage(String channelId, String text, @Nullable String iconUrl, @Nullable String username,
+							  @Nullable Attachment[] attachments, @Nullable String iconEmoji) throws Exception {
 		Log.info("Envoi d'un message");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
@@ -413,8 +413,22 @@ public class SlackAPI {
 		if (username != null) parameters.put("username", username);
 		if (attachments != null)
 			parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
+		if (iconEmoji != null)
+			parameters.put("icon_emoji", iconEmoji);
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_POST_MESSAGE, parameters, bot);
+		// Lecture de l'URL
+		return readUrl();
+	}
+
+	public String meMessage(String channelId, String text) throws Exception {
+		Log.info("Envoi d'un MeMessage");
+		//  Construction des paramètres optionnels
+		Map<String, String> parameters = new HashMap<>();
+		parameters.put("channel", channelId);
+		parameters.put("text", URLEncoder.encode(text, "UTF-8"));
+		// Construction de l'URL
+		buildUrl(METHOD_CHAT_ME_MESSAGE, parameters, bot);
 		// Lecture de l'URL
 		return readUrl();
 	}

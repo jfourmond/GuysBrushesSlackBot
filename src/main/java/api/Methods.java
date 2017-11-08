@@ -6,6 +6,7 @@ class Methods {
 	static final String METHOD_CHANNELS_HISTORY = "channels.history";
 	static final String METHOD_CHAT_POST_EPHEMERAL = "chat.postEphemeral";
 	static final String METHOD_CHAT_POST_MESSAGE = "chat.postMessage";
+	static final String METHOD_CHAT_ME_MESSAGE = "chat.meMessage";
 	static final String METHOD_CHAT_UPDATE = "chat.update";
 	static final String METHOD_LIST_CHANNELS = "channels.list";
 	static final String METHOD_LIST_FILES = "files.list";
