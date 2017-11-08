@@ -1,346 +1,286 @@
 package bot;
 
 import api.SlackAPI;
-import beans.Member;
 import beans.Reaction;
-import beans.channels.Channel;
-import beans.channels.ChannelType;
 import beans.events.Message;
 import beans.events.ReactionAdded;
 import com.google.gson.stream.JsonReader;
+import com.sun.istack.internal.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.annotations.*;
+import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 import static converter.Converter.readMessageSent;
 import static converter.Converter.readReactionAdded;
 
-/**
- * WebSocket pour le bot "Guy"
- */
 @WebSocket
-public class Guy {
-    private static final Logger Log = LogManager.getLogger(Guy.class);
+public class Guy extends Bot {
+	private static final Logger Log = LogManager.getLogger(Guy.class);
 
-    private static final String MESSAGE = "message";
-    private static final String REACTION_ADDED = "reaction_added";
-    private static final String TYPE = "type";
+	private static final String MESSAGE = "message";
+	private static final String REACTION_ADDED = "reaction_added";
+	private static final String TYPE = "type";
 
-    private static final String GOOGLE_SOLITAIRE = "https://www.google.com/logos/fnbx/solitaire/standalone.html";
-    private static final String GOOGLE_TIC_TAC_TOE = "https://www.google.com/fbx?fbx=tic_tac_toe";
+	private static final String CMD_HELP = "!help";
+	private static final String CMD_STATS = "!stats";
+	private static final String CMD_AWAKE = "!awake";
+	private static final String CMD_REMAINING = "!remaining";
+	private static final String CMD_PLOP = "!plop";
 
-    private Map<String, Boolean> saidHi;
+	private static final String BOT_NAME = "Guy";
 
-    // API SLACK
-    private SlackAPI api;
+	//  INFORMATION DE SESSION
+	private List<Reaction> reactions;
+	private List<String> channels;
+	// DATES
+	private LocalDateTime startDate;
 
-    //  INFORMATION DE SESSION
-    private String botId;
-    private List<Member> members;       // Membres du Slack
-    private List<Channel> channels;     // Channels où le bot est présent
-    private Map<String, List<Reaction>> reactions;
+	public Guy(SlackAPI api, String botId) throws Exception {
+		super(api, botId, BOT_NAME);
+	}
 
-    //  INFORMATION DE DUREE
-    private int duration;
-    private TimeUnit unit;
+	@Override
+	protected void initialisation() throws Exception {
+		super.initialisation();
+		reactions = new ArrayList<>();
+		//  RECHERCHE DES CHANNELS
+		channels = new ArrayList<>();
+		api.listChannels().forEach(channel -> {
+			if (channel.getMembers().contains(id))
+				channels.add(channel.getId());
+		});
+		startDate = LocalDateTime.now();
+	}
 
-    private final CountDownLatch closeLatch;
-    private Session session;
+	public void onConnect(Session session) {
+		super.onConnect(session);
+		channels.forEach(channel -> {
+			try {
+				api.meMessage(channel, "s'est réveillé");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
+	}
 
-    public Guy(String botId) throws Exception {
-        Log.info("Création de Guy : " + botId);
-        this.botId = botId;
+	@Override
+	public void onMessage(String message) {
+		Log.info("Event reçu");
+		Message M = null;
+		ReactionAdded RA = null;
 
-        initialisation();
+		System.out.println(message);
+		JsonReader reader = new JsonReader(new StringReader(message));
 
-        this.closeLatch = new CountDownLatch(1);
-    }
+		String name;
+		try {
+			reader.beginObject();
+			while (reader.hasNext()) {
+				name = reader.nextName();
+				switch (name) {
+					case TYPE:
+						switch (reader.nextString()) {
+							case MESSAGE:
+								Log.info("Event est : Message");
+								M = readMessageSent(reader);
+								break;
+							case REACTION_ADDED:
+								Log.info("Event est : Ajout d'une réaction");
+								RA = readReactionAdded(reader);
+								break;
+						}
+						break;
+					default:
+						reader.skipValue();
+						break;
+				}
+			}
+			reader.endObject();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
-    private void initialisation() throws Exception {
-        //  API
-        api = new SlackAPI(true);
-        //  RECHERCHE DES MEMBRES
-        saidHi = new HashMap<>();
-        members = api.listMembers();
-        members.forEach(m -> saidHi.put(m.getId(), false));
-        //  RECHERCHE DES CHANNELS
-        channels = new ArrayList<>();
-        api.listChannels().forEach(channel -> {
-            if (channel.getMembers().contains(botId))
-                channels.add(channel);
-        });
-        // RECHERCHE DES REACTIONS
-        reactions = new HashMap<>();
-        //  Récupération des messages
-        channels.forEach(channel -> {
-            System.out.println(channel);
-            try {
-                List<Message> messages = api.fetchAllMessages(channel.getId(), null);
-                List<Reaction> reactionsProv = new ArrayList<>();
-                // Traitement des réactions
-                messages.forEach(message -> {
-                    List<Reaction> reactionsMessages = message.getReactions();
-                    if (reactionsMessages != null) {
-                        reactionsMessages.forEach(reaction -> {
-                            Optional<Reaction> reac = reactionsProv.stream().filter(r -> reaction.getName().equals(r.getName())).findFirst();
-                            if (reac.isPresent()) {
-                                reac.get().setCount(reac.get().getCount() + reaction.getCount());
-                                reac.get().getUsers().addAll(reaction.getUsers());
-                            } else
-                                reactionsProv.add(reaction);
-                        });
-                    }
-                });
-                reactionsProv.sort(Comparator.comparingInt(Reaction::getCount));
-                reactions.put(channel.getId(), reactionsProv);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-    }
+		if (M != null && M.getSubtype() == null && !M.getUser().equals(id)) {
+			// Traitement channel publique ou message direct
+			switch (getChannelTypeFromMessage(M)) {
+				case PUBLIC:
+					onPublicMessage(M);
+					break;
+				case DIRECT_MESSAGE:
+					onDirectMessage(M);
+					break;
+			}
+		}
 
-    public boolean awaitClose(int duration, TimeUnit unit) throws InterruptedException {
-        this.duration = duration;
-        this.unit = unit;
-        return this.closeLatch.await(duration, unit);
-    }
+		if (RA != null && isPublicChannel(RA.getChannel())) {
+			// TRAITEMENT DE LA REACTION AJOUTEE
+			ReactionAdded finalRA = RA;
+			Optional<Reaction> reactionFound = reactions.stream().filter(reaction -> reaction.getName().equals(finalRA.getReaction())).findFirst();
+			if (reactionFound.isPresent()) {
+				reactionFound.get().addUser(RA.getUserId());
+				reactionFound.get().incrementCount();
+			} else {
+				List<String> users = new ArrayList<>();
+				users.add(RA.getUserId());
+				reactions.add(new Reaction(RA.getReaction(), 1, users));
+			}
+			Log.info("Réaction traitée et ajoutée");
+		}
+	}
 
-    @OnWebSocketError
-    public void onError(Throwable t) {
-        System.out.println("Error: " + t.getMessage());
-    }
+	@Override
+	public void onClose(int statusCode, String reason) {
+		Log.info("Fermeture de la connexion : " + statusCode + " - " + reason);
 
-    @OnWebSocketConnect
-    public void onConnect(Session session) {
-        Log.info("Connexion");
-        this.session = session;
+		LocalDateTime endDate = LocalDateTime.now();
+		System.out.println(Duration.between(startDate, endDate));
+		System.out.println(reactions);
 
-        channels.forEach(channel -> {
-            int reactionCount = 0;
-            for (Reaction reaction : reactions.get(channel.getId()))
-                reactionCount += reaction.getCount();
+		channels.forEach(channel -> {
+			try {
+				api.meMessage(channel, "nous a quitté.");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
 
+		this.session = null;
+		this.closeLatch.countDown();
+	}
 
-            Future<Void> fut0 = null;
-            try {
-                fut0 = sendMessage("Bonjour tout le monde ! :heart: Je ne serais présent que pendant " + duration + " " + unit.name().toLowerCase() + " !", channel.getId());
-                fut0.get(2, TimeUnit.SECONDS);
-            } catch (ExecutionException | InterruptedException e) {
-                // L'envoi a échoué
-                e.printStackTrace();
-            } catch (TimeoutException e) {
-                // Timeout
-                e.printStackTrace();
-                fut0.cancel(true);
-            }
+	private void onPublicMessage(Message M) {
+		Log.info("Réception d'un message publique");
 
-            try {
-                fut0 = sendMessage(reactionCount + " réactions dans le channel !", channel.getId());
-                fut0.get(2, TimeUnit.SECONDS);
-            } catch (ExecutionException | InterruptedException e) {
-                // L'envoi a échoué
-                e.printStackTrace();
-            } catch (TimeoutException e) {
-                // Timeout
-                e.printStackTrace();
-                fut0.cancel(true);
-            }
-        });
-    }
+		if (hasBeenCited(M)) {
+			messageTreatment(M);
+		}
+	}
 
-    @OnWebSocketMessage
-    public void onMessage(String message) {
-        Log.info("Event reçu");
-        Message M = null;
-        ReactionAdded RA = null;
+	private void onDirectMessage(Message M) {
+		// Dans le cas d'un message direct, pas besoin de citer le bot
+		// Récupération de l'utilisateur concerné
+		Log.info("Réception d'un message direct : \n" + M);
+		messageTreatment(M);
+	}
 
-        System.out.println(message);
-        JsonReader reader = new JsonReader(new StringReader(message));
+	/**
+	 * Récupération des réactions de l'utilisateur passé en paramètre
+	 *
+	 * @param user : utilisateur pour lequel rechercher ses réactions
+	 * @return les réactions, et leurs comptes respectifs, de l'utilisateur passé en paramètre
+	 */
+	private Map<String, Long> reactionsUser(String user) {
+		Map<String, Long> reactionsUser = new HashMap<>();
+		reactions.forEach(reaction -> {
+			List<String> users = reaction.getUsers();
+			if (users.contains(user))
+				reactionsUser.put(reaction.getName(), users.stream().filter(u -> u.equals(user)).count());
+		});
+		// Tri de la map
+		return reactionsUser.entrySet().stream()
+				.sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+						(oldValue, newValue) -> oldValue, HashMap::new));
+	}
 
-        String name;
-        try {
-            reader.beginObject();
-            while (reader.hasNext()) {
-                name = reader.nextName();
-                switch (name) {
-                    case TYPE:
-                        switch (reader.nextString()) {
-                            case MESSAGE:
-                                Log.info("Event est : Message");
-                                M = readMessageSent(reader);
-                                break;
-                            case REACTION_ADDED:
-                                Log.info("Event est : Ajout d'une réaction");
-                                RA = readReactionAdded(reader);
-                                System.out.println(RA);
-                                break;
-                        }
-                        break;
-                    default:
-                        reader.skipValue();
-                        break;
-                }
-            }
-            reader.endObject();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+	private void sendReactionsMessage(Map<String, Long> reactionsUser, String channel, @Nullable String prefix) {
+		StringBuilder sb = new StringBuilder();
+		if (prefix != null) sb.append(prefix);
+		if (reactionsUser.isEmpty())
+			sb.append("Vous n'avez envoyé aucune réaction depuis mon réveil.");
+		else {
+			sb.append("Vos réactions depuis mon réveil :\\n");
+			reactionsUser.forEach((r, l) -> sb.append("\\t:").append(r).append(": : *")
+					.append(l).append("*\\n"));
+		}
+		// Envoi du message
+		try {
+			sendMessage(sb.toString(), channel);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
-        if (M != null && M.getSubtype() == null && !M.getUser().equals(botId)) {
-            // Traitement channel publique ou message direct
-            switch (getChannelTypeFromMessage(M)) {
-                case PUBLIC:
-                    onPublicMessage(M);
-                    break;
-                case DIRECT_MESSAGE:
-                    onDirectMessage(M);
-                    break;
-            }
-        }
+	private void sendHelpCmd(String channel) {
+		Log.info("Envoi des commandes de Guy sur le channel : " + channel);
+		String cmds = "Commandes : \\n" +
+				"\\t_*!awake*_ : si vous vous demandez si je suis réveillé\\n" +
+				"\\t_*!help*_ : pour apprendre tout ce que j'ai à vous offrir :heart:\\n" +
+				"\\t_*!plop*_ : plop\\n" +
+				"\\t_*!remaining*_ : le temps qu'il me reste...\\n" +
+				"\\t_*!stats*_ : statistiques des réactions";
+		// Envoi du message
+		try {
+			sendMessage(cmds, channel);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
-        if (RA != null) {
-            // TRAITEMENT DE LA REACTION AJOUTE
-            List<Reaction> channelReactions = reactions.get(RA.getChannel());
-            ReactionAdded finalRA = RA;
-            Optional<Reaction> reactionFound = channelReactions.stream().filter(reaction -> reaction.getName().equals(finalRA.getReaction())).findFirst();
-            if (reactionFound.isPresent()) {
-                reactionFound.get().addUser(RA.getUserId());
-                reactionFound.get().incrementCount();
-            } else {
-                Set<String> users = new HashSet<>();
-                users.add(RA.getUserId());
-                channelReactions.add(new Reaction(RA.getReaction(), 1, users));
-            }
-            Log.info("Ajout d'une réaction");
-        }
-    }
+	/**
+	 * Récupération des commandes présentes dans le texte passé en paramètre
+	 *
+	 * @param text : texte à analyser
+	 * @return une liste des commandes présentes dans le texte
+	 */
+	private List<String> getCmd(String text) {
+		List<String> cmds = new ArrayList<>();
+		if (text.contains(CMD_AWAKE)) cmds.add(CMD_AWAKE);
+		if (text.contains(CMD_HELP)) cmds.add(CMD_HELP);
+		if (text.contains(CMD_PLOP)) cmds.add(CMD_PLOP);
+		if (text.contains(CMD_REMAINING)) cmds.add(CMD_REMAINING);
+		if (text.contains(CMD_STATS)) cmds.add(CMD_STATS);
+		return cmds;
+	}
 
-    private void onPublicMessage(Message M) {
-        Future<Void> fut = null;
-        // Récupération de l'utilisateur concerné
-        Optional<Member> member = members.stream().filter(m -> m.getId().equals(M.getUser())).findFirst();
-        if (hasBeenCited(M) && member.isPresent()) {
-            if (!saidHi.get(member.get().getId())) {
-                fut = sendMessage("Salut <@" + member.get().getId() + "> ! :wave: ", M.getChannel());
-                try {
-                    fut.get(2, TimeUnit.SECONDS);
-                    if (fut.isDone())
-                        saidHi.put(member.get().getId(), true);
-                } catch (ExecutionException | InterruptedException e) {
-                    // L'envoi a échoué
-                    e.printStackTrace();
-                } catch (TimeoutException e) {
-                    // Timeout
-                    e.printStackTrace();
-                    fut.cancel(true);
-                }
-            }
-            if (M.getText().toLowerCase().contains("solitaire")) {
-                try {
-                    api.addReaction("ok_hand", M.getChannel(), null, null, M.getTimestamp());
-                    fut = sendMessage("<@" + member.get().getId() + "> " + GOOGLE_SOLITAIRE, M.getChannel());
-                    fut.get(2, TimeUnit.SECONDS);
-                } catch (ExecutionException | InterruptedException e) {
-                    // L'envoi a échoué
-                    e.printStackTrace();
-                } catch (TimeoutException e) {
-                    // Timeout
-                    e.printStackTrace();
-                    fut.cancel(true);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            } else if (M.getText().toLowerCase().contains("tic tac toe") || M.getText().toLowerCase().contains("morpion")) {
-                try {
-                    api.addReaction("ok_hand", M.getChannel(), null, null, M.getTimestamp());
-                    fut = sendMessage("<@" + member.get().getId() + "> " + GOOGLE_TIC_TAC_TOE, M.getChannel());
-                    fut.get(2, TimeUnit.SECONDS);
-                } catch (ExecutionException | InterruptedException e) {
-                    // L'envoi a échoué
-                    e.printStackTrace();
-                } catch (TimeoutException e) {
-                    // Timeout
-                    e.printStackTrace();
-                    fut.cancel(true);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    private void onDirectMessage(Message M) {
-        Future<Void> fut = null;
-        // Dans le cas d'un message direct, pas besoin de citer le bot
-        // Récupération de l'utilisateur concerné
-        if (M.getText().toLowerCase().contains("solitaire")) {
-            try {
-                fut = sendMessage(GOOGLE_SOLITAIRE, M.getChannel());
-                fut.get(2, TimeUnit.SECONDS);
-            } catch (ExecutionException | InterruptedException e) {
-                // L'envoi a échoué
-                e.printStackTrace();
-            } catch (TimeoutException e) {
-                // Timeout
-                e.printStackTrace();
-                fut.cancel(true);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } else if (M.getText().toLowerCase().contains("tic tac toe") || M.getText().toLowerCase().contains("morpion")) {
-            try {
-                fut = sendMessage(GOOGLE_TIC_TAC_TOE, M.getChannel());
-                fut.get(2, TimeUnit.SECONDS);
-            } catch (ExecutionException | InterruptedException e) {
-                // L'envoi a échoué
-                e.printStackTrace();
-            } catch (TimeoutException e) {
-                // Timeout
-                e.printStackTrace();
-                fut.cancel(true);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    @OnWebSocketClose
-    public void onClose(int statusCode, String reason) {
-        Log.info("Fermeture de la connexion : " + statusCode + " - " + reason);
-
-        //  TODO Rapport d'exécution
-
-        this.session = null;
-        this.closeLatch.countDown();
-    }
-
-    private Future<Void> sendMessage(String text, String channelId) {
-        return session.getRemote().sendStringByFuture(
-                "{ " +
-                        "\"type\" : \"message\", " +
-                        "\"text\" : \"" + text + "\"," +
-                        "\"channel\" : \"" + channelId + "\"" +
-                        "}");
-    }
-
-    private boolean hasBeenCited(Message M) {
-        return (M.getText().contains("<@U6E9ZNAJC>") || M.getText().toLowerCase().contains("guy"));
-    }
-
-    private ChannelType getChannelTypeFromMessage(Message M) {
-        switch (M.getChannel().charAt(0)) {
-            case 'C':
-                return ChannelType.PUBLIC;
-            case 'D':
-                return ChannelType.DIRECT_MESSAGE;
-            default:
-                return ChannelType.PRIVATE;
-        }
-    }
+	private void messageTreatment(Message M) {
+		List<String> cmds = getCmd(M.getText());
+		if (cmds.isEmpty()) {
+			// TODO interaction avec l'utilisateur lorsqu'il n'exécute pas de commande
+		} else if (cmds.contains(CMD_AWAKE)) {
+			// COMMANDE : !awake
+			// Ajout d'une réaction pour marquer la présence du bot
+			try {
+				api.addReaction("thumbsup", M.getChannel(), null, null, M.getTimestamp());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (cmds.contains(CMD_HELP)) {
+			// COMMANDE : !help
+			// Envoie des commandes du bot
+			sendHelpCmd(M.getChannel());
+			try {
+				sendMessage("plop", M.getChannel());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (cmds.contains(CMD_REMAINING)) {
+			// COMMANDE : !remaining
+			// Envoie le temps restant du bot
+			Duration d = Duration.between(startDate, LocalDateTime.now());
+			long remaining = duration - d.toMinutes();
+			try {
+				sendMessage("Il me reste " + remaining + " minutes...", M.getChannel());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (cmds.contains(CMD_STATS)) {
+			// COMMANDE : !stats
+			// Récupération des stats de l'utilisateur
+			Map<String, Long> reactionsUser = reactionsUser(M.getUser());
+			String prefix = null;
+			if(isPublicChannel(M.getChannel()))
+				prefix = "<@" + M.getUser() + "> : ";
+			// Préparation & Envoi du message
+			sendReactionsMessage(reactionsUser, M.getChannel(), prefix);
+		}
+	}
 }
