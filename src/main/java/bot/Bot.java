@@ -120,7 +120,11 @@ public abstract class Bot {
 	 * @return {@code true} si le bot a été cité dans le message, {@code false} sinon
 	 */
 	boolean hasBeenCited(Message M) {
-		return (M.getText().contains("<@" + id + ">") || M.getText().toLowerCase().contains(name));
+		return (M.getText().contains("<@" + id + ">") || M.getText().toLowerCase().contains(name.toLowerCase()));
+	}
+
+	boolean isPublicChannel(String channelId) {
+		return channelId.charAt(0) == 'C';
 	}
 
 	ChannelType getChannelTypeFromMessage(Message M) {

@@ -1,8 +1,6 @@
 package bot;
 
-import beans.Member;
 import beans.Reaction;
-import beans.channels.Channel;
 import beans.events.Message;
 import beans.events.ReactionAdded;
 import com.google.gson.stream.JsonReader;
@@ -20,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import static converter.Converter.readMessageSent;
 import static converter.Converter.readReactionAdded;
@@ -28,17 +27,16 @@ import static converter.Converter.readReactionAdded;
 public class GuyReactionAnalyser extends Bot {
 	private static final Logger Log = LogManager.getLogger(GuyReactionAnalyser.class);
 
-	private static final String CHANNEL_ANALYZED = "C0T38EFRQ";
-
 	private static final String MESSAGE = "message";
 	private static final String REACTION_ADDED = "reaction_added";
 	private static final String TYPE = "type";
 
+	private static final String CMD_STATS = "!stats";
+	private static final String CMD_AWAKE = "!awake";
+
 	private static final String BOT_NAME = "Guy";
 
 	//  INFORMATION DE SESSION
-	private List<Member> members;       // Membres du Slack
-	private Channel channel;            // Channel à analyser
 	private List<Reaction> reactions;
 
 	// DATES
@@ -51,19 +49,10 @@ public class GuyReactionAnalyser extends Bot {
 	@Override
 	protected void initialisation() throws Exception {
 		super.initialisation();
-		//  RECHERCHE DES MEMBRES
-		members = api.listMembers();
-		//  RECHERCHE DU CHANNEL
-		api.listChannels().forEach(channel -> {
-			if (channel.getMembers().contains(id) && channel.getId().equals(CHANNEL_ANALYZED))
-				this.channel = channel;
-		});
 		// RECHERCHE DES REACTIONS
 		reactions = new ArrayList<>();
 
 		startDate = LocalDateTime.now();
-
-		System.out.println(startDate);
 	}
 
 	@Override
@@ -115,7 +104,7 @@ public class GuyReactionAnalyser extends Bot {
 			}
 		}
 
-		if (RA != null && RA.getChannel().equals(channel.getId())) {
+		if (RA != null && isPublicChannel(RA.getChannel())) {
 			// TRAITEMENT DE LA REACTION AJOUTEE
 			ReactionAdded finalRA = RA;
 			Optional<Reaction> reactionFound = reactions.stream().filter(reaction -> reaction.getName().equals(finalRA.getReaction())).findFirst();
@@ -146,15 +135,21 @@ public class GuyReactionAnalyser extends Bot {
 	private void onPublicMessage(Message M) {
 		Log.info("Réception d'un message publique");
 
-		// Récupération de l'utilisateur concerné
-		Optional<Member> member = members.stream().filter(m -> m.getId().equals(M.getUser())).findFirst();
-
-		if (hasBeenCited(M) && member.isPresent()) {
-			Duration d = Duration.between(startDate, LocalDateTime.now());
-			// Récupération des stats de l'utilisateur
-			Map<String, Long> reactionsUser = reactionsUser(M.getUser());
-			// Préparation & Envoi du message
-			sendReactionsMessage(reactionsUser, d, M.getChannel(), "<@" + member.get().getId() + "> : ");
+		if (hasBeenCited(M)) {
+			List<String> cmds = getCmd(M.getText());
+			if (cmds.isEmpty()) {
+				// Ajout d'une réaction pour marquer la présence du bot
+				try {
+					api.addReaction("wave", M.getChannel(), null, null, M.getTimestamp());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			} else if (cmds.contains(CMD_STATS)) {
+				// Récupération des stats de l'utilisateur
+				Map<String, Long> reactionsUser = reactionsUser(M.getUser());
+				// Préparation & Envoi du message
+				sendReactionsMessage(reactionsUser, M.getChannel(), "<@" + M.getUser() + "> : ");
+			}
 		}
 	}
 
@@ -163,11 +158,20 @@ public class GuyReactionAnalyser extends Bot {
 		// Récupération de l'utilisateur concerné
 		Log.info("Réception d'un message direct : \n" + M);
 
-		Duration d = Duration.between(startDate, LocalDateTime.now());
-		// Récupération des stats de l'utilisateur
-		Map<String, Long> reactionsUser = reactionsUser(M.getUser());
-		// Préparation & Envoi du message
-		sendReactionsMessage(reactionsUser, d, M.getChannel(), null);
+		List<String> cmds = getCmd(M.getText());
+		if (cmds.isEmpty()) {
+			// Ajout d'une réaction pour marquer la présence du bot
+			try {
+				api.addReaction("wave", M.getChannel(), null, null, M.getTimestamp());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (cmds.contains(CMD_STATS)) {
+			// Récupération des stats de l'utilisateur
+			Map<String, Long> reactionsUser = reactionsUser(M.getUser());
+			// Préparation & Envoi du message
+			sendReactionsMessage(reactionsUser, M.getChannel(), null);
+		}
 	}
 
 	/**
@@ -183,21 +187,22 @@ public class GuyReactionAnalyser extends Bot {
 			if (users.contains(user))
 				reactionsUser.put(reaction.getName(), users.stream().filter(u -> u.equals(user)).count());
 		});
-		return reactionsUser;
+		// Tri de la map
+		return reactionsUser.entrySet().stream()
+				.sorted(Map.Entry.comparingByValue(Comparator.naturalOrder()))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+						(oldValue, newValue) -> oldValue, HashMap::new));
 	}
 
-	private void sendReactionsMessage(Map<String, Long> reactionsUser, Duration d, String channel, @Nullable String prefix) {
+	private void sendReactionsMessage(Map<String, Long> reactionsUser, String channel, @Nullable String prefix) {
 		Future<Void> fut = null;
+
 		StringBuilder sb = new StringBuilder();
 		if (prefix != null) sb.append(prefix);
-		if (reactionsUser.isEmpty()) {
-			sb.append("Vous n'avez envoyé aucune réaction dans les ");
-			sb.append(d.getSeconds());
-			sb.append(" dernières secondes :disappointed:");
-		} else {
-			sb.append("Vos réactions depuis ");
-			sb.append(d.getSeconds());
-			sb.append(" secondes :\\n");
+		if (reactionsUser.isEmpty())
+			sb.append("Vous n'avez envoyé aucune réaction depuis mon réveil.");
+		else {
+			sb.append("Vos réactions depuis mon réveil :\\n");
 			reactionsUser.forEach((r, l) -> {
 				sb.append("\\t:");
 				sb.append(r);
@@ -221,5 +226,18 @@ public class GuyReactionAnalyser extends Bot {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	/**
+	 * Récupération des commandes présentes dans le texte passé en paramètre
+	 *
+	 * @param text : texte à analyser
+	 * @return une liste des commandes présentes dans le texte
+	 */
+	private List<String> getCmd(String text) {
+		List<String> cmds = new ArrayList<>();
+		if (text.contains(CMD_STATS)) cmds.add(CMD_STATS);
+		if (text.contains(CMD_AWAKE)) cmds.add(CMD_AWAKE);
+		return cmds;
 	}
 }
