@@ -38,6 +38,9 @@ public class SlackAPI {
     private String token;
     private String botToken;
 
+    /**
+     * @param bot spécifie certains appels à l'API doivent s'effectuer en tant que bot
+     */
     public SlackAPI(boolean bot) {
         this.bot = bot;
         build();
