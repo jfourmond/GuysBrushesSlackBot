@@ -11,8 +11,10 @@ import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 
-import java.io.IOException;
-import java.io.StringReader;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -24,6 +26,8 @@ import static converter.Converter.readReactionAdded;
 @WebSocket
 public class Guy extends Bot {
 	private static final Logger Log = LogManager.getLogger(Guy.class);
+
+	private static final String EMOJIS_FILE = "emojis_list.txt";
 
 	private static final String MESSAGE = "message";
 	private static final String REACTION_ADDED = "reaction_added";
@@ -42,9 +46,13 @@ public class Guy extends Bot {
 	private List<String> channels;
 	// DATES
 	private LocalDateTime startDate;
+	// RANDOM
+	private Random rand;
 
 	public Guy(SlackAPI api, String botId) throws Exception {
 		super(api, botId, BOT_NAME);
+
+		rand = new Random(System.currentTimeMillis());
 	}
 
 	@Override
@@ -244,12 +252,19 @@ public class Guy extends Bot {
 	private void messageTreatment(Message M) {
 		List<String> cmds = getCmd(M.getText());
 		if (cmds.isEmpty()) {
-			// TODO interaction avec l'utilisateur lorsqu'il n'exécute pas de commande
+			// Interaction avec l'utilisateur lorsqu'il n'exécute pas de commande
+			try {
+				Path path = Paths.get(getClass().getClassLoader().getResource(EMOJIS_FILE).toURI());
+				long lineCount = Files.lines(path).count();
+				int lineN = rand.nextInt((int) lineCount);
+				api.addReaction(Files.readAllLines(path).get(lineN), M.getChannel(), null, null, M.getTimestamp());
+			} catch(Exception E) {
+				E.printStackTrace();
+			}
 		} else if (cmds.contains(CMD_AWAKE)) {
 			// COMMANDE : !awake
-			// Ajout d'une réaction pour marquer la présence du bot
 			try {
-				api.addReaction("thumbsup", M.getChannel(), null, null, M.getTimestamp());
+				sendMessage(":wave:", M.getChannel());
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

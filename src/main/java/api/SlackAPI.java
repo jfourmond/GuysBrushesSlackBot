@@ -76,6 +76,12 @@ public class SlackAPI {
 			Log.error("Impossible de charger les propriétés de configuration.");
 			e.printStackTrace();
 		}
+
+		try {
+			propertyFile.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		Log.info("Lecture terminée.");
 	}
 
