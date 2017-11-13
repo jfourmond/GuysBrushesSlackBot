@@ -23,21 +23,21 @@ import static converter.Converter.*;
 
 public class SlackAPI {
 	private static final Logger Log = LogManager.getLogger(SlackAPI.class);
-	
+
 	private static final String PROPERTIES_FILE = "slack.properties";
 	private static final String PROPERTY_BOT_TOKEN = "BOT_TOKEN";
 	private static final String PROPERTY_TOKEN = "TOKEN";
-	
+
 	private static final String API_URL = "https://slack.com/api/";
-	
+
 	private boolean bot;
-	
+
 	private JsonReader reader;
-	
+
 	private String stringUrl;
 	private String token;
 	private String botToken;
-	
+
 	/**
 	 * @param bot spécifie certains appels à l'API doivent s'effectuer en tant que bot
 	 */
@@ -45,32 +45,32 @@ public class SlackAPI {
 		this.bot = bot;
 		build();
 	}
-	
+
 	//  GETTERS
 	public boolean isBot() {
 		return bot;
 	}
-	
+
 	//  SETTERS
 	public void setBot(boolean bot) {
 		this.bot = bot;
 	}
-	
+
 	//	METHODES
 	private void build() {
 		Log.info("Lecture du fichier de configuration...");
 		Properties properties = new Properties();
-		
+
 		ClassLoader classLoader = getClass().getClassLoader();
 		InputStream propertyFile = null;
-		
+
 		try {
 			propertyFile = new FileInputStream(classLoader.getResource(PROPERTIES_FILE).getFile());
 		} catch (FileNotFoundException e) {
 			Log.error("Fichier de configuration \"" + PROPERTIES_FILE + "\" introuvable.");
 			e.printStackTrace();
 		}
-		
+
 		try {
 			properties.load(propertyFile);
 			token = properties.getProperty(PROPERTY_TOKEN);
@@ -79,7 +79,7 @@ public class SlackAPI {
 			Log.error("Impossible de charger les propriétés de configuration.");
 			e.printStackTrace();
 		}
-		
+
 		try {
 			propertyFile.close();
 		} catch (IOException e) {
@@ -87,7 +87,7 @@ public class SlackAPI {
 		}
 		Log.info("Lecture terminée.");
 	}
-	
+
 	/**
 	 * Construction de l'URL de l'appel à l'API
 	 *
@@ -115,7 +115,7 @@ public class SlackAPI {
 		sb.append("&pretty=1");
 		stringUrl = sb.toString();
 	}
-	
+
 	/**
 	 * GET de l'URL
 	 *
@@ -146,9 +146,9 @@ public class SlackAPI {
 				reader.close();
 		}
 	}
-	
+
 	//  METHODES D'APPEL A L'API
-	
+
 	/**
 	 * Appel à la méthode "api.test"
 	 * Test de l'API
@@ -162,7 +162,7 @@ public class SlackAPI {
 		buildUrl(METHOD_API_TEST, null, false);
 		return readUrl();
 	}
-	
+
 	/**
 	 * Appel à la méthode "auth.test"
 	 * Test de l'authentification
@@ -176,7 +176,7 @@ public class SlackAPI {
 		buildUrl(METHOD_AUTHENTIFICATION_TEST, null, false);
 		return readUrl();
 	}
-	
+
 	/**
 	 * Appel à la méthode "rtm.connect"
 	 * Demande une url de connection pour WebSocket
@@ -191,11 +191,11 @@ public class SlackAPI {
 		parameters.put("scope", URLEncoder.encode("rtm:stream", "UTF-8"));
 		// Construction de l'URL
 		buildUrl(METHOD_RTM_CONNECT, parameters, true);
-		
+
 		boolean ok;
 		String name;
 		Map<String, String> map = new HashMap<>();
-		
+
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -225,7 +225,7 @@ public class SlackAPI {
 		reader.close();
 		return map;
 	}
-	
+
 	/**
 	 * Appel à la méthode "channels.list"
 	 * Liste les channels
@@ -237,11 +237,11 @@ public class SlackAPI {
 	public List<Channel> listChannels() throws Exception {
 		Log.info("Enumération des channels");
 		buildUrl(METHOD_LIST_CHANNELS, null, false);
-		
+
 		List<Channel> channels = null;
 		boolean ok;
 		String name;
-		
+
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -263,10 +263,10 @@ public class SlackAPI {
 		}
 		reader.endObject();
 		reader.close();
-		
+
 		return channels;
 	}
-	
+
 	/**
 	 * Appel à la méthode "files.list"
 	 * Liste les fichiers
@@ -289,12 +289,12 @@ public class SlackAPI {
 		if (userId != null) parameters.put("user", userId);
 		// Construction de l'URL
 		buildUrl(METHOD_LIST_FILES, parameters, false);
-		
+
 		List<File> files = null;
 		Paging paging = null;
 		boolean ok;
 		String name;
-		
+
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -323,10 +323,10 @@ public class SlackAPI {
 		}
 		reader.endObject();
 		reader.close();
-		
+
 		return new AbstractMap.SimpleEntry<>(files, paging);
 	}
-	
+
 	/**
 	 * Récupération de tous les fichiers
 	 *
@@ -342,7 +342,7 @@ public class SlackAPI {
 		Integer page = 1;
 		Boolean hasNextPage = true;
 		Paging paging;
-		
+
 		while (hasNextPage) {
 			Map.Entry<List<File>, Paging> fetchedFiles = listFiles(channelId, count, page, userId);
 			paging = fetchedFiles.getValue();
@@ -352,7 +352,7 @@ public class SlackAPI {
 		}
 		return files;
 	}
-	
+
 	/**
 	 * Appel à la méthode "users.list"
 	 * Liste les membres
@@ -364,11 +364,11 @@ public class SlackAPI {
 	public List<Member> listMembers() throws Exception {
 		Log.info("Listage des membres");
 		buildUrl(METHOD_LIST_USERS, null, false);
-		
+
 		List<Member> users = null;
 		boolean ok;
 		String name;
-		
+
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -394,25 +394,31 @@ public class SlackAPI {
 		}
 		reader.endObject();
 		reader.close();
-		
+
 		return users;
 	}
-	
+
 	/**
 	 * Appel à la méthode "chat.postMessage"
 	 * Poste un message dans un channel
 	 *
-	 * @param channelId   identifiant du channel
-	 * @param text        texte à envoyer
-	 * @param iconUrl     URL d'une image utilisée comme icône au message
-	 * @param username    nom du bot
-	 * @param attachments Un tableau JSON de pièce jointes, {@link Attachment} see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
+	 * @param channelId      identifiant du channel
+	 * @param text           texte à envoyer
+	 * @param iconUrl        URL d'une image utilisée comme icône au message
+	 * @param username       nom du bot
+	 * @param attachments    Un tableau JSON de pièce jointes, {@link Attachment} see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
+	 * @param iconEmoji      emoji utilisé comme icône du message
+	 * @param threadTS       identifiant timestamp du message auquel répondre
+	 * @param replyBroadcast (Défaut : {@code false}) à utiliser en association avec threadTS, {@code true} si la réponse doit être visible dans le channel ou dans la conversation
+	 * @param unfurlLinks    {@code true} pour activer le déroulement (l'intégration) du contenu texte
+	 * @param unfurlMedia    {@code false} pour désactiver le déroulement de contenu média
 	 * @return la réponse à la requête
 	 * @throws Exception si l'URL est malformée
 	 * @see <a href="https://api.slack.com/methods/chat.postMessage">https://api.slack.com/methods/chat.postMessage</a>
 	 */
 	public String postMessage(String channelId, String text, @Nullable String iconUrl, @Nullable String username,
-							  @Nullable Attachment[] attachments, @Nullable String iconEmoji) throws Exception {
+							  @Nullable Attachment[] attachments, @Nullable String iconEmoji, @Nullable String threadTS,
+							  @Nullable Boolean replyBroadcast, @Nullable Boolean unfurlLinks, @Nullable Boolean unfurlMedia) throws Exception {
 		Log.info("Envoi d'un message");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
@@ -424,12 +430,20 @@ public class SlackAPI {
 			parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
 		if (iconEmoji != null)
 			parameters.put("icon_emoji", iconEmoji);
+		if (threadTS != null)
+			parameters.put("thread_ts", threadTS);
+		if (replyBroadcast != null && threadTS != null)
+			parameters.put("reply_broadcast", replyBroadcast.toString());
+		if (unfurlMedia != null)
+			parameters.put("unfurl_media", unfurlMedia.toString());
+		if (unfurlLinks != null)
+			parameters.put("unfurl_links", unfurlLinks.toString());
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_POST_MESSAGE, parameters, bot);
 		// Lecture de l'URL
 		return readUrl();
 	}
-	
+
 	/**
 	 * Appel à la méthode "chat.meMessage"
 	 * Poste un meMessage dans le channel
@@ -450,7 +464,7 @@ public class SlackAPI {
 		// Lecture de l'URL
 		return readUrl();
 	}
-	
+
 	/**
 	 * Appel à la méthode "chat.update"
 	 * Met à jour un message dans un channel
@@ -493,10 +507,10 @@ public class SlackAPI {
 		} else
 			while (reader.hasNext()) reader.skipValue();
 		reader.endObject();
-		
+
 		return ok;
 	}
-	
+
 	/**
 	 * Appel à la méthode "chat.postEphemeral"
 	 * Poste un message éphémère, visible seulement à l'utilisateur assigné, à un channel publique, channel privé, ou message directe
@@ -529,7 +543,7 @@ public class SlackAPI {
 		// Lecture de l'URL
 		return readUrl();
 	}
-	
+
 	/**
 	 * Appel à la méthode "reactions.add"
 	 * Ajoute une réaction
@@ -565,7 +579,7 @@ public class SlackAPI {
 		}
 		reader.endObject();
 	}
-	
+
 	/**
 	 * Appel à la méthode "channels.history"
 	 * Récupére les {@link Message} d'un channel (du plus récent au plus vieux)
@@ -591,7 +605,7 @@ public class SlackAPI {
 		if (unread != null) parameters.put("unread", unread.toString());
 		// Construction de l'URL
 		buildUrl(METHOD_CHANNELS_HISTORY, parameters, false);
-		
+
 		List<Message> messages = null;
 		Boolean hasMore = null;
 		boolean ok;
@@ -626,7 +640,7 @@ public class SlackAPI {
 		reader.close();
 		return new AbstractMap.SimpleEntry<>(messages, hasMore);
 	}
-	
+
 	/**
 	 * Récupération de tous les messages du channel
 	 *
@@ -647,7 +661,7 @@ public class SlackAPI {
 		}
 		return messages;
 	}
-	
+
 	/**
 	 * Conversion du tableau de {@link Attachment} en une chaîne de caractère JSON
 	 *
@@ -665,7 +679,7 @@ public class SlackAPI {
 		sb.append("]");
 		return sb.toString();
 	}
-	
+
 	/**
 	 * Appel à la méthode "users.setPresence"
 	 * Edite manuellement la présence de l'utilisateur (ici, le bot)
