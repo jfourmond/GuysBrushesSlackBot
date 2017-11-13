@@ -19,6 +19,14 @@ import java.util.*;
 
 import static api.Attributes.*;
 import static api.Methods.*;
+import static api.URLParameters.*;
+import static api.URLParameters.CHANNEL;
+import static api.URLParameters.COUNT;
+import static api.URLParameters.NAME;
+import static api.URLParameters.PAGE;
+import static api.URLParameters.TEXT;
+import static api.URLParameters.TS;
+import static api.URLParameters.USER;
 import static converter.Converter.*;
 
 public class SlackAPI {
@@ -283,10 +291,10 @@ public class SlackAPI {
 		Log.info("Enumération des fichiers");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		if (channelId != null) parameters.put("channel", channelId);
-		if (count != null) parameters.put("count", count.toString());
-		if (page != null) parameters.put("page", page.toString());
-		if (userId != null) parameters.put("user", userId);
+		if (channelId != null) parameters.put(CHANNEL, channelId);
+		if (count != null) parameters.put(COUNT, count.toString());
+		if (page != null) parameters.put(PAGE, page.toString());
+		if (userId != null) parameters.put(USER, userId);
 		// Construction de l'URL
 		buildUrl(METHOD_LIST_FILES, parameters, false);
 
@@ -422,22 +430,22 @@ public class SlackAPI {
 		Log.info("Envoi d'un message");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("channel", channelId);
-		parameters.put("text", URLEncoder.encode(text, "UTF-8"));
-		if (iconUrl != null) parameters.put("icon_url", URLEncoder.encode(iconUrl, "UTF-8"));
-		if (username != null) parameters.put("username", username);
+		parameters.put(CHANNEL, channelId);
+		parameters.put(TEXT, URLEncoder.encode(text, "UTF-8"));
+		if (iconUrl != null) parameters.put(ICON_URL, URLEncoder.encode(iconUrl, "UTF-8"));
+		if (username != null) parameters.put(USERNAME, username);
 		if (attachments != null)
-			parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
+			parameters.put(ATTACHMENTS, URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
 		if (iconEmoji != null)
-			parameters.put("icon_emoji", iconEmoji);
+			parameters.put(ICON_EMOJI, iconEmoji);
 		if (threadTS != null)
-			parameters.put("thread_ts", threadTS);
+			parameters.put(THREAD_TS, threadTS);
 		if (replyBroadcast != null && threadTS != null)
-			parameters.put("reply_broadcast", replyBroadcast.toString());
+			parameters.put(REPLY_BROADCAST, replyBroadcast.toString());
 		if (unfurlMedia != null)
-			parameters.put("unfurl_media", unfurlMedia.toString());
+			parameters.put(UNFURL_MEDIA, unfurlMedia.toString());
 		if (unfurlLinks != null)
-			parameters.put("unfurl_links", unfurlLinks.toString());
+			parameters.put(UNFURL_LINKS, unfurlLinks.toString());
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_POST_MESSAGE, parameters, bot);
 		// Lecture de l'URL
@@ -457,8 +465,8 @@ public class SlackAPI {
 		Log.info("Envoi d'un MeMessage");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("channel", channelId);
-		parameters.put("text", URLEncoder.encode(text, "UTF-8"));
+		parameters.put(CHANNEL, channelId);
+		parameters.put(TEXT, URLEncoder.encode(text, "UTF-8"));
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_ME_MESSAGE, parameters, bot);
 		// Lecture de l'URL
@@ -482,24 +490,23 @@ public class SlackAPI {
 	 */
 	public boolean updateMEssage(String channelId, String text, String ts, @Nullable Boolean asUser, @Nullable Attachment[] attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception {
 		Log.info("Edition d'un message");
-		boolean ok = false;
 		// Construction des paramètres
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("channel", channelId);
-		parameters.put("text", URLEncoder.encode(text, "UTF-8"));
-		parameters.put("ts", ts);
-		if (asUser != null) parameters.put("as_user", asUser.toString());
+		parameters.put(CHANNEL, channelId);
+		parameters.put(TEXT, URLEncoder.encode(text, "UTF-8"));
+		parameters.put(TS, ts);
+		if (asUser != null) parameters.put(AS_USER, asUser.toString());
 		if (attachments != null)
-			parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
-		if (linkNames != null) parameters.put("link_names", linkNames.toString());
-		if (parse != null) parameters.put("parse", parse);
+			parameters.put(ATTACHMENTS, URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
+		if (linkNames != null) parameters.put(LINK_NAMES, linkNames.toString());
+		if (parse != null) parameters.put(PARSE, parse);
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_UPDATE, parameters, false);
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
 		reader.beginObject();
-		ok = readOk(reader);
+		boolean ok = readOk(reader);
 		if (!ok) {
 			System.err.println(json);
 			// Récupération du message d'erreur
@@ -530,14 +537,14 @@ public class SlackAPI {
 		Log.info("Envoi d'un message ephémère");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("channel", channelId);
-		parameters.put("text", URLEncoder.encode(text, "UTF-8"));
-		parameters.put("user", userId);
-		if (asUser != null) parameters.put("as_user", asUser.toString());
+		parameters.put(CHANNEL, channelId);
+		parameters.put(TEXT, URLEncoder.encode(text, "UTF-8"));
+		parameters.put(USER, userId);
+		if (asUser != null) parameters.put(AS_USER, asUser.toString());
 		if (attachments != null)
-			parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
-		if (linkNames != null) parameters.put("link_names", linkNames.toString());
-		if (parse != null) parameters.put("parse", parse);
+			parameters.put(ATTACHMENTS, URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
+		if (linkNames != null) parameters.put(LINK_NAMES, linkNames.toString());
+		if (parse != null) parameters.put(PARSE, parse);
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_POST_EPHEMERAL, parameters, bot);
 		// Lecture de l'URL
@@ -560,11 +567,11 @@ public class SlackAPI {
 		boolean ok;
 		// Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("name", reactionName);
-		if (channelId != null) parameters.put("channel", channelId);
-		if (file != null) parameters.put("file", file);
-		if (fileComment != null) parameters.put("file_comment", fileComment);
-		if (timestamp != null) parameters.put("timestamp", timestamp);
+		parameters.put(NAME, reactionName);
+		if (channelId != null) parameters.put(CHANNEL, channelId);
+		if (file != null) parameters.put(FILE, file);
+		if (fileComment != null) parameters.put(FILE_COMMENT, fileComment);
+		if (timestamp != null) parameters.put(TIMESTAMP, timestamp);
 		// Construction de l'URL
 		buildUrl(METHOD_REACTION_ADD, parameters, bot);
 		//  Lecture de l'URL
@@ -597,12 +604,12 @@ public class SlackAPI {
 		Log.info("Récupération des messages du channel \"" + channelId + "\"");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("channel", channelId);
-		if (count != null) parameters.put("count", count.toString());
-		if (inclusive != null) parameters.put("inclusive", inclusive.toString());
-		if (latest != null) parameters.put("latest", latest);
-		if (oldest != null) parameters.put("oldest", oldest);
-		if (unread != null) parameters.put("unread", unread.toString());
+		parameters.put(CHANNEL, channelId);
+		if (count != null) parameters.put(COUNT, count.toString());
+		if (inclusive != null) parameters.put(INCLUSIVE, inclusive.toString());
+		if (latest != null) parameters.put(LATEST, latest);
+		if (oldest != null) parameters.put(OLDEST, oldest);
+		if (unread != null) parameters.put(UNREAD, unread.toString());
 		// Construction de l'URL
 		buildUrl(METHOD_CHANNELS_HISTORY, parameters, false);
 
@@ -690,13 +697,12 @@ public class SlackAPI {
 	 */
 	public String setPresence(boolean presence) throws Exception {
 		Log.info("Edition de la présence : " + presence);
-		boolean ok = false;
 		// Construction des paramètres
 		Map<String, String> parameters = new HashMap<>();
 		if (presence)
-			parameters.put("presence", "auto");
+			parameters.put(PRESENCE, AUTO);
 		else
-			parameters.put("presence", "away");
+			parameters.put(PRESENCE, AWAY);
 		// Construction de l'URL
 		buildUrl(METHOD_SET_PRESENCE, parameters, true);
 		// Lecture de l'URL
