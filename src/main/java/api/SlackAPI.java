@@ -7,6 +7,7 @@ import beans.Paging;
 import beans.channels.Channel;
 import beans.events.Message;
 import com.google.gson.stream.JsonReader;
+import converter.Converter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -64,7 +65,10 @@ public class SlackAPI {
 		this.bot = bot;
 	}
 
-	//	METHODES
+	//********************//
+	//	   METHODES       //
+	//********************//
+
 	private void build() {
 		Log.info("Lecture du fichier de configuration...");
 		Properties properties = new Properties();
@@ -155,7 +159,9 @@ public class SlackAPI {
 		}
 	}
 
-	//  METHODES D'APPEL A L'API
+	//***********************************//
+	//	   METHODES D'APPEL A L'API      //
+	//***********************************//
 
 	/**
 	 * Appel à la méthode "api.test"
@@ -333,32 +339,6 @@ public class SlackAPI {
 		reader.close();
 
 		return new AbstractMap.SimpleEntry<>(files, paging);
-	}
-
-	/**
-	 * Récupération de tous les fichiers
-	 *
-	 * @param channelId identifiant du channel
-	 * @param count     fichiers à récupérer par appel à la méthode "files.list"
-	 * @param userId    identifiant de l'utilisateur sur lequel filtrer
-	 * @return une liste de fichiers
-	 * @throws Exception Si l'URL est malformée
-	 */
-	public List<File> listAllFiles(@Nullable String channelId, @Nullable Integer count, @Nullable String userId) throws Exception {
-		Log.info("Enumération de tous les fichiers");
-		List<File> files = new ArrayList<>();
-		Integer page = 1;
-		Boolean hasNextPage = true;
-		Paging paging;
-
-		while (hasNextPage) {
-			Map.Entry<List<File>, Paging> fetchedFiles = listFiles(channelId, count, page, userId);
-			paging = fetchedFiles.getValue();
-			files.addAll(fetchedFiles.getKey());
-			hasNextPage = !Objects.equals(paging.getPage(), paging.getPages());
-			page++;
-		}
-		return files;
 	}
 
 	/**
@@ -542,7 +522,7 @@ public class SlackAPI {
 		parameters.put(USER, userId);
 		if (asUser != null) parameters.put(AS_USER, asUser.toString());
 		if (attachments != null)
-			parameters.put(ATTACHMENTS, URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
+			parameters.put(ATTACHMENTS, URLEncoder.encode(Converter.AttachmentsToJson(attachments), "UTF-8"));
 		if (linkNames != null) parameters.put(LINK_NAMES, linkNames.toString());
 		if (parse != null) parameters.put(PARSE, parse);
 		// Construction de l'URL
@@ -649,6 +629,58 @@ public class SlackAPI {
 	}
 
 	/**
+	 * Appel à la méthode "users.setPresence"
+	 * Edite manuellement la présence de l'utilisateur (ici, le bot)
+	 *
+	 * @param presence {@code true} pour présent (auto), {@code false} pour absent
+	 * @return la réponse à la requête
+	 * @see <a href="https://api.slack.com/methods/users.setPresence/">https://api.slack.com/methods/users.setPresence/</a>
+	 */
+	public String setPresence(boolean presence) throws Exception {
+		Log.info("Edition de la présence : " + presence);
+		// Construction des paramètres
+		Map<String, String> parameters = new HashMap<>();
+		if (presence)
+			parameters.put(PRESENCE, AUTO);
+		else
+			parameters.put(PRESENCE, AWAY);
+		// Construction de l'URL
+		buildUrl(METHOD_SET_PRESENCE, parameters, true);
+		// Lecture de l'URL
+		return readUrl();
+	}
+
+	//************************************************************//
+	//	   METHODES NE FAISANT PAS APPEL DIRECTEMENT A L'API      //
+	//************************************************************//
+
+	/**
+	 * Récupération de tous les fichiers
+	 *
+	 * @param channelId identifiant du channel
+	 * @param count     fichiers à récupérer par appel à la méthode "files.list"
+	 * @param userId    identifiant de l'utilisateur sur lequel filtrer
+	 * @return une liste de fichiers
+	 * @throws Exception Si l'URL est malformée
+	 */
+	public List<File> listAllFiles(@Nullable String channelId, @Nullable Integer count, @Nullable String userId) throws Exception {
+		Log.info("Enumération de tous les fichiers");
+		List<File> files = new ArrayList<>();
+		Integer page = 1;
+		Boolean hasNextPage = true;
+		Paging paging;
+
+		while (hasNextPage) {
+			Map.Entry<List<File>, Paging> fetchedFiles = listFiles(channelId, count, page, userId);
+			paging = fetchedFiles.getValue();
+			files.addAll(fetchedFiles.getKey());
+			hasNextPage = !Objects.equals(paging.getPage(), paging.getPages());
+			page++;
+		}
+		return files;
+	}
+
+	/**
 	 * Récupération de tous les messages du channel
 	 *
 	 * @param channelId identifiant du channel
@@ -670,42 +702,54 @@ public class SlackAPI {
 	}
 
 	/**
-	 * Conversion du tableau de {@link Attachment} en une chaîne de caractère JSON
+	 * Retourne le channel correspondant à l'identifiant passé en paramètre
 	 *
-	 * @param attachments un tableau de pièce jointe, {@link Attachment}
-	 * @return un chaîne de caractère JSON
+	 * @param id identifiant du channel à rechercher
+	 * @return le channel correspondant (si trouvé), {@code null} sinon
+	 * @throws Exception si une erreur est levée lors de la récupération des channels
 	 */
-	private static String AttachmentsToJson(Attachment[] attachments) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("[");
-		for (int i = 0; i < attachments.length; i++) {
-			sb.append(attachments[i].json());
-			if (i != attachments.length - 1)
-				sb.append(",");
-		}
-		sb.append("]");
-		return sb.toString();
+	public Channel getChannelById(String id) throws Exception {
+		List<Channel> channels = this.listChannels();
+		Optional<Channel> channel = channels.stream().filter(ch -> ch.getId().equals(id)).findFirst();
+		return channel.orElse(null);
 	}
 
 	/**
-	 * Appel à la méthode "users.setPresence"
-	 * Edite manuellement la présence de l'utilisateur (ici, le bot)
+	 * Retourne le channel correspondant au nom passé en paramètre
 	 *
-	 * @param presence {@code true} pour présent (auto), {@code false} pour absent
-	 * @return la réponse à la requête
-	 * @see <a href="https://api.slack.com/methods/users.setPresence/">https://api.slack.com/methods/users.setPresence/</a>
+	 * @param name nom du channel à rechercher
+	 * @return le channel correspondant (si trouvé), {@code null} sinon
+	 * @throws Exception si une erreur est levée lors de la récupération des channels
 	 */
-	public String setPresence(boolean presence) throws Exception {
-		Log.info("Edition de la présence : " + presence);
-		// Construction des paramètres
-		Map<String, String> parameters = new HashMap<>();
-		if (presence)
-			parameters.put(PRESENCE, AUTO);
-		else
-			parameters.put(PRESENCE, AWAY);
-		// Construction de l'URL
-		buildUrl(METHOD_SET_PRESENCE, parameters, true);
-		// Lecture de l'URL
-		return readUrl();
+	public Channel getChannelByName(String name) throws Exception {
+		List<Channel> channels = this.listChannels();
+		Optional<Channel> channel = channels.stream().filter(ch -> ch.getName().equals(name)).findFirst();
+		return channel.orElse(null);
+	}
+
+	/**
+	 * Retourne l'utilisateur correspondant à l'identifiant passé en paramètre
+	 *
+	 * @param id identifiant de l'utilisateur à rechercher
+	 * @return l'utilisateur correspondant (si trouvé) {@code null} sinon
+	 * @throws Exception si une erreur est levée lors de la récupération des utilisateurs
+	 */
+	public Member getMemberById(String id) throws Exception {
+		List<Member> members = this.listMembers();
+		Optional<Member> member = members.stream().filter(m -> m.getId().equals(id)).findFirst();
+		return member.orElse(null);
+	}
+
+	/**
+	 * Retourne l'utilisateur correspondant au nom (username) passé en paramètre
+	 *
+	 * @param name nom (username) de l'utilisateur à rechercher
+	 * @return l'utilisateur correspondant (si trouvé) {@code null} sinon
+	 * @throws Exception si une erreur est levée lors de la récupération des utilisateurs
+	 */
+	public Member getMemberByName(String name) throws Exception {
+		List<Member> members = this.listMembers();
+		Optional<Member> member = members.stream().filter(m -> m.getName().equals(name)).findFirst();
+		return member.orElse(null);
 	}
 }
