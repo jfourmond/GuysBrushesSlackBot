@@ -1,9 +1,6 @@
 package converter;
 
-import beans.File;
-import beans.Member;
-import beans.Paging;
-import beans.Reaction;
+import beans.*;
 import beans.channels.Channel;
 import beans.channels.ChannelType;
 import beans.events.Message;
@@ -473,5 +470,23 @@ public class Converter {
 			users.add(reader.nextString());
 		reader.endArray();
 		return users;
+	}
+
+	/**
+	 * Conversion du tableau de {@link Attachment} en une chaîne de caractère JSON
+	 *
+	 * @param attachments un tableau de pièce jointe, {@link Attachment}
+	 * @return un chaîne de caractère JSON
+	 */
+	public static String AttachmentsToJson(Attachment[] attachments) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("[");
+		for (int i = 0; i < attachments.length; i++) {
+			sb.append(attachments[i].json());
+			if (i != attachments.length - 1)
+				sb.append(",");
+		}
+		sb.append("]");
+		return sb.toString();
 	}
 }

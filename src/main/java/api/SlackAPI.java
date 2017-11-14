@@ -661,7 +661,7 @@ public class SlackAPI {
 	 * @param count     fichiers à récupérer par appel à la méthode "files.list"
 	 * @param userId    identifiant de l'utilisateur sur lequel filtrer
 	 * @return une liste de fichiers
-	 * @throws Exception Si l'URL est malformée
+	 * @throws Exception si une erreur est levée lors de la récupération des fichiers
 	 */
 	public List<File> listAllFiles(@Nullable String channelId, @Nullable Integer count, @Nullable String userId) throws Exception {
 		Log.info("Enumération de tous les fichiers");
@@ -686,6 +686,7 @@ public class SlackAPI {
 	 * @param channelId identifiant du channel
 	 * @param count     messages à récupérer par appel à la méthode "channels.history"
 	 * @return une liste de messages
+	 * @throws Exception si une erreur est levée lors de la récupération des fichiers
 	 */
 	public List<Message> fetchAllMessages(String channelId, @Nullable Integer count) throws Exception {
 		Log.info("Récupération de tous les messages du channel \"" + channelId + "\"");
