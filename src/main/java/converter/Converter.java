@@ -17,7 +17,7 @@ public class Converter {
 	/**
 	 * Retourne le statut "ok" du JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return le statut "ok" du JSON
 	 * @throws Exception si une erreur est détectée lors de la lecture, ou s'il n'existe pas d'attribut "ok"
 	 */
@@ -31,7 +31,7 @@ public class Converter {
 	/**
 	 * Retourne l'erreur du JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return l'erreur du JSON
 	 * @throws Exception si une erreur est détectée lors de la lecture, ou s'il n'existe pas d'attribut "error"
 	 */
@@ -45,7 +45,7 @@ public class Converter {
 	/**
 	 * Lecture des channels dans le JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return une liste de {@link Channel}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -61,7 +61,7 @@ public class Converter {
 	/**
 	 * Lecture du channel dans le JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return un {@link Channel}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -102,7 +102,7 @@ public class Converter {
 	/**
 	 * Retourne l'Event "message" du JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return l'Event "message" du JSON
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -137,7 +137,7 @@ public class Converter {
 	/**
 	 * Retourne l'Event "réaction_added" du JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return une {@link ReactionAdded}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -191,7 +191,7 @@ public class Converter {
 	/**
 	 * Lecture des fichiers dans le JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return une liste de {@link File}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -207,7 +207,7 @@ public class Converter {
 	/**
 	 * Lecture du fichier dans le JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return un {@link File}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -246,7 +246,7 @@ public class Converter {
 	/**
 	 * Lecture du Paging dans le JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return un {@link Paging}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -281,7 +281,7 @@ public class Converter {
 	/**
 	 * Lecture des membres dans le JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return une liste de {@link Member}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -297,7 +297,7 @@ public class Converter {
 	/**
 	 * Lecture du membre dans le JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return un {@link Member}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -339,7 +339,7 @@ public class Converter {
 	/**
 	 * Lecture de l'attribut "self" du JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return le contenu de l'attribut "self" du JSON
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -364,7 +364,7 @@ public class Converter {
 	/**
 	 * Lecture du message du JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return un {@link Message}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -410,7 +410,7 @@ public class Converter {
 	/**
 	 * Lecture des réactions dans le JSON
 	 *
-	 * @param reader
+	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return une liste de {@link Reaction}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -426,7 +426,7 @@ public class Converter {
 	/**
 	 * Lecture d'une réaction dans le JSON
 	 *
-	 * @param reader
+	 * @param reader le JSONReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return une {@link Reaction}
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
@@ -459,7 +459,7 @@ public class Converter {
 	/**
 	 * Lecture des utilisateurs d'une réaction dans le JSON
 	 *
-	 * @param reader
+	 * @param reader le JSONReader précédemment utilisé (pour pouvoir poursuivre le traitement)
 	 * @return une liste d'utilisateurs
 	 * @throws IOException si une erreur est détectée lors de la lecture
 	 */
