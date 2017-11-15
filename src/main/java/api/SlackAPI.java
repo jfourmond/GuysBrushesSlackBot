@@ -136,27 +136,16 @@ public class SlackAPI {
 	 */
 	private String readUrl() throws Exception {
 		Log.info("GET : - " + stringUrl);
-		BufferedReader reader = null;
-		try {
-			URL url = new URL(stringUrl);
-			URLConnection conn = url.openConnection();
-			//  Récupération des en-têtes
-//            Map<String, List<String>> map = conn.getHeaderFields();
-//            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-//                System.out.println(entry.getKey() + " : " + entry.getValue());
-//            }
-			// Récuparation du contenu
-			reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-			StringBuilder buffer = new StringBuilder();
-			int read;
-			char[] chars = new char[1024];
-			while ((read = reader.read(chars)) != -1)
-				buffer.append(chars, 0, read);
-			return buffer.toString();
-		} finally {
-			if (reader != null)
-				reader.close();
-		}
+		URL url = new URL(stringUrl);
+		BufferedReader in = new BufferedReader(
+				new InputStreamReader(url.openStream()));
+
+		String inputLine;
+		StringBuilder sb = new StringBuilder();
+		while ((inputLine = in.readLine()) != null)
+			sb.append(inputLine);
+		in.close();
+		return sb.toString();
 	}
 
 	//***********************************//
