@@ -2,6 +2,7 @@ package bot;
 
 import api.SlackAPI;
 import beans.Reaction;
+import beans.channels.Channel;
 import beans.events.Message;
 import beans.events.ReactionAdded;
 import com.google.gson.stream.JsonReader;
@@ -17,31 +18,36 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static converter.Converter.readMessageSent;
 import static converter.Converter.readReactionAdded;
+import static java.lang.Thread.sleep;
 
 @WebSocket
 public class Guy extends Bot {
 	private static final Logger Log = LogManager.getLogger(Guy.class);
-	
+
 	private static final String EMOJIS_FILE = "emojis_list.txt";
-	
+
 	private static final String MESSAGE = "message";
 	private static final String REACTION_ADDED = "reaction_added";
 	private static final String TYPE = "type";
-	
-	private static final String CMD_HELP = "!help";
-	private static final String CMD_STATS = "!stats";
+
 	private static final String CMD_AWAKE = "!awake";
-	private static final String CMD_REMAINING = "!remaining";
+	private static final String CMD_HELP = "!help";
 	private static final String CMD_PLOP = "!plop";
-	
+	private static final String CMD_REMAINING = "!remaining";
+	private static final String CMD_STATS = "!stats";
+	private static final String CMD_TOP_3 = "!top3";
+
+
 	private static final String BOT_NAME = "Guy";
-	
+
 	//  INFORMATION DE SESSION
 	private List<Reaction> reactions;
 	private List<String> channels;
@@ -49,13 +55,13 @@ public class Guy extends Bot {
 	private LocalDateTime startDate;
 	// RANDOM
 	private Random rand;
-	
+
 	public Guy(SlackAPI api, String botId) throws Exception {
 		super(api, botId, BOT_NAME);
-		
+
 		rand = new Random(System.currentTimeMillis());
 	}
-	
+
 	@Override
 	protected void initialisation() throws Exception {
 		super.initialisation();
@@ -68,7 +74,7 @@ public class Guy extends Bot {
 		});
 		startDate = LocalDateTime.now();
 	}
-	
+
 	public void onConnect(Session session) {
 		super.onConnect(session);
 		channels.forEach(channel -> {
@@ -79,16 +85,16 @@ public class Guy extends Bot {
 			}
 		});
 	}
-	
+
 	@Override
 	public void onMessage(String message) {
 		Log.info("Event reçu");
 		Message M = null;
 		ReactionAdded RA = null;
-		
+
 		System.out.println(message);
 		JsonReader reader = new JsonReader(new StringReader(message));
-		
+
 		String name;
 		try {
 			reader.beginObject();
@@ -116,7 +122,7 @@ public class Guy extends Bot {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		if (M != null && M.getSubtype() == null && !M.getUser().equals(id)) {
 			// Traitement channel publique ou message direct
 			switch (getChannelTypeFromMessage(M)) {
@@ -128,7 +134,7 @@ public class Guy extends Bot {
 					break;
 			}
 		}
-		
+
 		if (RA != null && isPublicChannel(RA.getChannel())) {
 			// TRAITEMENT DE LA REACTION AJOUTEE
 			ReactionAdded finalRA = RA;
@@ -144,15 +150,15 @@ public class Guy extends Bot {
 			Log.info("Réaction traitée et ajoutée");
 		}
 	}
-	
+
 	@Override
 	public void onClose(int statusCode, String reason) {
 		Log.info("Fermeture de la connexion : " + statusCode + " - " + reason);
-		
+
 		LocalDateTime endDate = LocalDateTime.now();
 		System.out.println(Duration.between(startDate, endDate));
 		System.out.println(reactions);
-		
+
 		channels.forEach(channel -> {
 			try {
 				api.meMessage(channel, "nous a quitté.");
@@ -160,26 +166,26 @@ public class Guy extends Bot {
 				e.printStackTrace();
 			}
 		});
-		
+
 		this.session = null;
 		this.closeLatch.countDown();
 	}
-	
+
 	private void onPublicMessage(Message M) {
 		Log.info("Réception d'un message publique");
-		
+
 		if (hasBeenCited(M)) {
 			messageTreatment(M);
 		}
 	}
-	
+
 	private void onDirectMessage(Message M) {
 		// Dans le cas d'un message direct, pas besoin de citer le bot
 		// Récupération de l'utilisateur concerné
 		Log.info("Réception d'un message direct : \n" + M);
 		messageTreatment(M);
 	}
-	
+
 	/**
 	 * Récupération des réactions de l'utilisateur passé en paramètre
 	 *
@@ -199,7 +205,7 @@ public class Guy extends Bot {
 				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
 						(oldValue, newValue) -> oldValue, HashMap::new));
 	}
-	
+
 	private void sendReactionsMessage(Map<String, Long> reactionsUser, String channel, @Nullable String prefix) {
 		StringBuilder sb = new StringBuilder();
 		if (prefix != null) sb.append(prefix);
@@ -217,7 +223,7 @@ public class Guy extends Bot {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private void sendHelpCmd(String channel) {
 		Log.info("Envoi des commandes de Guy sur le channel : " + channel);
 		String cmds = "Commandes : \\n" +
@@ -233,7 +239,7 @@ public class Guy extends Bot {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Récupération des commandes présentes dans le texte passé en paramètre
 	 *
@@ -247,9 +253,10 @@ public class Guy extends Bot {
 		if (text.contains(CMD_PLOP)) cmds.add(CMD_PLOP);
 		if (text.contains(CMD_REMAINING)) cmds.add(CMD_REMAINING);
 		if (text.contains(CMD_STATS)) cmds.add(CMD_STATS);
+		if (text.contains(CMD_TOP_3)) cmds.add(CMD_TOP_3);
 		return cmds;
 	}
-	
+
 	private void messageTreatment(Message M) {
 		List<String> cmds = getCmd(M.getText());
 		if (cmds.isEmpty()) {
@@ -262,43 +269,98 @@ public class Guy extends Bot {
 			} catch (Exception E) {
 				E.printStackTrace();
 			}
-		} else if (cmds.contains(CMD_AWAKE)) {
-			// COMMANDE : !awake
-			try {
-				sendMessage(":wave:", M.getChannel());
-			} catch (Exception e) {
-				e.printStackTrace();
+		} else {
+			if (cmds.contains(CMD_AWAKE)) {
+				// COMMANDE : !awake
+				try {
+					sendMessage(":wave:", M.getChannel());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
-		} else if (cmds.contains(CMD_HELP)) {
-			// COMMANDE : !help
-			// Envoie des commandes du bot
-			sendHelpCmd(M.getChannel());
-		} else if (cmds.contains(CMD_PLOP)) {
-			// COMMANDE : !plop
-			try {
-				sendMessage("plop", M.getChannel());
-			} catch (Exception e) {
-				e.printStackTrace();
+			if (cmds.contains(CMD_HELP)) {
+				// COMMANDE : !help
+				// Envoie des commandes du bot
+				sendHelpCmd(M.getChannel());
 			}
-		} else if (cmds.contains(CMD_REMAINING)) {
-			// COMMANDE : !remaining
-			// Envoie le temps restant du bot
-			Duration d = Duration.between(startDate, LocalDateTime.now());
-			long remaining = duration - d.toMinutes();
-			try {
-				sendMessage("Il me reste " + remaining + " minutes...", M.getChannel());
-			} catch (Exception e) {
-				e.printStackTrace();
+			if (cmds.contains(CMD_PLOP)) {
+				// COMMANDE : !plop
+				try {
+					sendMessage("plop", M.getChannel());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
-		} else if (cmds.contains(CMD_STATS)) {
-			// COMMANDE : !stats
-			// Récupération des stats de l'utilisateur
-			Map<String, Long> reactionsUser = reactionsUser(M.getUser());
-			String prefix = null;
-			if (isPublicChannel(M.getChannel()))
-				prefix = "<@" + M.getUser() + "> : ";
-			// Préparation & Envoi du message
-			sendReactionsMessage(reactionsUser, M.getChannel(), prefix);
+			if (cmds.contains(CMD_REMAINING)) {
+				// COMMANDE : !remaining
+				// Envoie le temps restant du bot
+				Duration d = Duration.between(startDate, LocalDateTime.now());
+				long remaining = duration - d.toMinutes();
+				try {
+					sendMessage("Il me reste " + remaining + " minutes...", M.getChannel());
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			if (cmds.contains(CMD_STATS)) {
+				// COMMANDE : !stats
+				// Récupération des stats de l'utilisateur
+				Map<String, Long> reactionsUser = reactionsUser(M.getUser());
+				String prefix = null;
+				if (isPublicChannel(M.getChannel()))
+					prefix = "<@" + M.getUser() + "> : ";
+				// Préparation & Envoi du message
+				sendReactionsMessage(reactionsUser, M.getChannel(), prefix);
+			}
+			if (cmds.contains(CMD_TOP_3)) {
+				// COMMANDE : !top3
+				// Récupération des 3 meilleurs messages du channel courant des 7 derniers jours
+				Instant sevenDaysAgo = Instant.now().minus(7, ChronoUnit.DAYS);
+				Long timestamp7DaysAgo = sevenDaysAgo.getEpochSecond();
+
+				List<Message> messages;
+				try {
+					Channel channel = api.getChannelById(M.getChannel());
+					messages = api.fetchAllMessages(channel.getId(), null, timestamp7DaysAgo);
+					System.out.println(messages.size() + " MESSAGES");
+					// FILTRE
+					messages = messages.stream().filter(message -> message.getReactions() != null).collect(Collectors.toList());
+					messages.sort((o1, o2) -> o2.countReactions() - o1.countReactions());
+
+					System.out.println(messages.size() + " MESSAGES AVEC REACTIONS");
+					List<Message> bestMessages = messages.subList(0, 3);
+
+					sendMessage("Voici le top 3 des messages du channel _*" + channel.getName() + "*_ de ces 7 derniers jours :fireworks: ! :", channel.getId());
+
+					sleep(5000);
+
+					for (int number = 2; number >= 0; number--) {
+						Message message = bestMessages.get(number);
+						String timestampStr = message.getTimestamp();
+						long timestamp = Long.parseLong(timestampStr.substring(0, timestampStr.indexOf('.')));
+
+						String urlTimestamp = timestampStr.replace(".", "");
+
+						StringBuilder sb = new StringBuilder();
+						sb.append("<https://guysbrushes.slack.com/archives/").append(channel.getId()).append("/p").append(urlTimestamp)
+								.append("|N°").append((number + 1)).append("> avec ").append(message.countReactions()).append(" réactions ");
+						for (Reaction reaction : message.getReactions())
+							sb.append(":").append(reaction.getName()).append(": ");
+						sb.append(": ");
+
+						try {
+							api.postMessage(channel.getId(), sb.toString(), true,
+									null, null, null, null, null,
+									true, null, null);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						sleep(15000);
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 		}
 	}
 }
