@@ -11,7 +11,7 @@ public class ListMessages {
     public static void main(String args[]) throws Exception {
         SlackAPI api = new SlackAPI(false);
 
-        List<Message> messages = api.fetchAllMessages(GENERAL_ID, null);
+        List<Message> messages = api.fetchAllMessages(GENERAL_ID, null, null);
 
         System.out.println(messages.size() + " MESSAGES");
     }
