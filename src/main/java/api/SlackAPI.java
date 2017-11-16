@@ -14,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 import javax.annotation.Nullable;
 import java.io.*;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.*;
 
@@ -393,28 +392,30 @@ public class SlackAPI {
 	 * @throws Exception si l'URL est malformée
 	 * @see <a href="https://api.slack.com/methods/chat.postMessage">https://api.slack.com/methods/chat.postMessage</a>
 	 */
-	public String postMessage(String channelId, String text, @Nullable String iconUrl, @Nullable String username,
-							  @Nullable Attachment[] attachments, @Nullable String iconEmoji, @Nullable String threadTS,
-							  @Nullable Boolean replyBroadcast, @Nullable Boolean unfurlLinks, @Nullable Boolean unfurlMedia) throws Exception {
+	public String postMessage(String channelId, String text, @Nullable Boolean asUser, @Nullable Attachment[] attachments,
+							  @Nullable String iconEmoji, @Nullable String iconUrl, @Nullable Boolean replyBroadcast,
+							  @Nullable String threadTS, @Nullable Boolean unfurlLinks, @Nullable Boolean unfurlMedia,
+							  @Nullable String username) throws Exception {
 		Log.info("Envoi d'un message");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
 		parameters.put(CHANNEL, channelId);
 		parameters.put(TEXT, URLEncoder.encode(text, "UTF-8"));
-		if (iconUrl != null) parameters.put(ICON_URL, URLEncoder.encode(iconUrl, "UTF-8"));
-		if (username != null) parameters.put(USERNAME, username);
+		if (asUser != null) parameters.put(AS_USER, asUser.toString());
 		if (attachments != null)
 			parameters.put(ATTACHMENTS, URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
 		if (iconEmoji != null)
 			parameters.put(ICON_EMOJI, iconEmoji);
-		if (threadTS != null)
-			parameters.put(THREAD_TS, threadTS);
+		if (iconUrl != null) parameters.put(ICON_URL, URLEncoder.encode(iconUrl, "UTF-8"));
 		if (replyBroadcast != null && threadTS != null)
 			parameters.put(REPLY_BROADCAST, replyBroadcast.toString());
-		if (unfurlMedia != null)
-			parameters.put(UNFURL_MEDIA, unfurlMedia.toString());
+		if (threadTS != null)
+			parameters.put(THREAD_TS, threadTS);
 		if (unfurlLinks != null)
 			parameters.put(UNFURL_LINKS, unfurlLinks.toString());
+		if (unfurlMedia != null)
+			parameters.put(UNFURL_MEDIA, unfurlMedia.toString());
+		if (username != null) parameters.put(USERNAME, username);
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_POST_MESSAGE, parameters, bot);
 		// Lecture de l'URL
@@ -674,18 +675,23 @@ public class SlackAPI {
 	 *
 	 * @param channelId identifiant du channel
 	 * @param count     messages à récupérer par appel à la méthode "channels.history"
+	 * @param oldest    timestamp du plus vieux à message à récupérer
 	 * @return une liste de messages
 	 * @throws Exception si une erreur est levée lors de la récupération des fichiers
 	 */
-	public List<Message> fetchAllMessages(String channelId, @Nullable Integer count) throws Exception {
+	public List<Message> fetchAllMessages(String channelId, @Nullable Integer count, @Nullable Long oldest) throws Exception {
 		Log.info("Récupération de tous les messages du channel \"" + channelId + "\"");
 		List<Message> messages = new ArrayList<>();
+		String oldestTimestamp = null;
+		if (oldest != null)
+			oldestTimestamp = oldest.toString();
 		String lastTs = null;
 		boolean hasMore = true;
 		while (hasMore) {
-			Map.Entry<List<Message>, Boolean> messagesFetched = fetchMessages(channelId, count, null, lastTs, null, null);
+			Map.Entry<List<Message>, Boolean> messagesFetched = fetchMessages(channelId, count, null, lastTs, oldestTimestamp, null);
 			hasMore = messagesFetched.getValue();
-			lastTs = messagesFetched.getKey().get(messagesFetched.getKey().size() - 1).getTimestamp();
+			if (hasMore)
+				lastTs = messagesFetched.getKey().get(messagesFetched.getKey().size() - 1).getTimestamp();
 			messages.addAll(messagesFetched.getKey());
 		}
 		return messages;
