@@ -186,76 +186,22 @@ public class Guy extends Bot {
 	}
 
 	/**
-	 * Récupération des réactions de l'utilisateur passé en paramètre
-	 *
-	 * @param user : utilisateur pour lequel rechercher ses réactions
-	 * @return les réactions, et leurs comptes respectifs, de l'utilisateur passé en paramètre
-	 */
-	private Map<String, Long> reactionsUser(String user) {
-		Map<String, Long> reactionsUser = new HashMap<>();
-		reactions.forEach(reaction -> {
-			List<String> users = reaction.getUsers();
-			if (users.contains(user))
-				reactionsUser.put(reaction.getName(), users.stream().filter(u -> u.equals(user)).count());
-		});
-		// Tri de la map
-		return reactionsUser.entrySet().stream()
-				.sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-						(oldValue, newValue) -> oldValue, HashMap::new));
-	}
-
-	private void sendReactionsMessage(Map<String, Long> reactionsUser, String channel, @Nullable String prefix) {
-		StringBuilder sb = new StringBuilder();
-		if (prefix != null) sb.append(prefix);
-		if (reactionsUser.isEmpty())
-			sb.append("Vous n'avez envoyé aucune réaction depuis mon réveil.");
-		else {
-			sb.append("Vos réactions depuis mon réveil :\\n");
-			reactionsUser.forEach((r, l) -> sb.append("\\t:").append(r).append(": : *")
-					.append(l).append("*\\n"));
-		}
-		// Envoi du message
-		try {
-			sendMessage(sb.toString(), channel);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private void sendHelpCmd(String channel) {
-		Log.info("Envoi des commandes de Guy sur le channel : " + channel);
-		String cmds = "Commandes : \\n" +
-				"\\t_*!awake*_ : si vous vous demandez si je suis réveillé\\n" +
-				"\\t_*!help*_ : pour apprendre tout ce que j'ai à vous offrir :heart:\\n" +
-				"\\t_*!plop*_ : plop\\n" +
-				"\\t_*!remaining*_ : le temps qu'il me reste...\\n" +
-				"\\t_*!stats*_ : statistiques des réactions";
-		// Envoi du message
-		try {
-			sendMessage(cmds, channel);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
 	 * Récupération de la première commande à exécuter dans le texte passé en paramètre
 	 *
 	 * @param text texte à analyser
 	 * @return la commande à exécuter
 	 */
 	private String getCmd(String text) {
-		// TODO Gestion de la première commande uniquement
 		String command = null;
 		int index = Integer.MAX_VALUE;
 		for (String cmd : cmds()) {
 			int ind = text.indexOf(cmd);
-			if (ind < index) {
+			if (ind != -1 && ind < index) {
 				command = cmd;
 				index = ind;
 			}
 		}
+		Log.info("Commande détectée : " + command);
 		return command;
 	}
 
@@ -285,15 +231,18 @@ public class Guy extends Bot {
 				E.printStackTrace();
 			}
 		} else {
+			String prefix = null;
+			if (isPublicChannel(M.getChannel()))
+				prefix = "<@" + M.getUser() + "> : ";
 			switch (cmd) {
 				case CMD_AWAKE:
 					// COMMANDE : !awake
 					sendMessage(":wave:", M.getChannel());
 					break;
 				case CMD_FILES:
-					// TODO Lister les fichiers de l'utilisateur ? Supprimer les fichiers ?
+					// COMMANDE : !files
 					List<File> files = api.listAllFiles(null, null, M.getUser());
-					sendMessage(files.size() + " FICHIERS", M.getChannel());
+					sendFilesInfo(files, M.getChannel(), prefix);
 					break;
 				case CMD_HELP:
 					// COMMANDE : !help
@@ -314,55 +263,153 @@ public class Guy extends Bot {
 					// COMMANDE : !stats
 					// Récupération des stats de l'utilisateur
 					Map<String, Long> reactionsUser = reactionsUser(M.getUser());
-					String prefix = null;
-					if (isPublicChannel(M.getChannel()))
-						prefix = "<@" + M.getUser() + "> : ";
 					// Préparation & Envoi du message
 					sendReactionsMessage(reactionsUser, M.getChannel(), prefix);
 					break;
 				case CMD_TOP_3:
 					// COMMANDE : !top3
-					// Récupération des 3 meilleurs messages du channel courant des 7 derniers jours
-					Instant sevenDaysAgo = Instant.now().minus(7, ChronoUnit.DAYS);
-					Long timestamp7DaysAgo = sevenDaysAgo.getEpochSecond();
-
-					Channel channel = api.getChannelById(M.getChannel());
-					List<Message> messages = api.fetchAllMessages(channel.getId(), null, timestamp7DaysAgo);
-					System.out.println(messages.size() + " MESSAGES");
-					// FILTRE
-					messages = messages.stream().filter(message -> message.getReactions() != null).collect(Collectors.toList());
-					messages.sort((o1, o2) -> o2.countReactions() - o1.countReactions());
-
-					System.out.println(messages.size() + " MESSAGES AVEC REACTIONS");
-					List<Message> bestMessages = messages.subList(0, 3);
-
-					sendMessage("Voici le top 3 des messages du channel _*" + channel.getName() + "*_ de ces 7 derniers jours :fireworks: ! :", channel.getId());
-
-					sleep(5000);
-
-					for (int number = 2; number >= 0; number--) {
-						Message message = bestMessages.get(number);
-						String timestampStr = message.getTimestamp();
-						long timestamp = Long.parseLong(timestampStr.substring(0, timestampStr.indexOf('.')));
-
-						String urlTimestamp = timestampStr.replace(".", "");
-
-						StringBuilder sb = new StringBuilder();
-						sb.append("<https://guysbrushes.slack.com/archives/").append(channel.getId()).append("/p").append(urlTimestamp)
-								.append("|N°").append((number + 1)).append("> avec ").append(message.countReactions()).append(" réactions ");
-						for (Reaction reaction : message.getReactions())
-							sb.append(":").append(reaction.getName()).append(": ");
-						sb.append(": ");
-
-
-						api.postMessage(channel.getId(), sb.toString(), true,
-								null, null, null, null, null,
-								true, null, null);
-
-						sleep(15000);
-					}
+					sendTop3(M.getChannel());
 					break;
 			}
+		}
+	}
+
+	/**
+	 * Récupération des réactions de l'utilisateur passé en paramètre
+	 *
+	 * @param user : utilisateur pour lequel rechercher ses réactions
+	 * @return les réactions, et leurs comptes respectifs, de l'utilisateur passé en paramètre
+	 */
+	private Map<String, Long> reactionsUser(String user) {
+		Map<String, Long> reactionsUser = new HashMap<>();
+		reactions.forEach(reaction -> {
+			List<String> users = reaction.getUsers();
+			if (users.contains(user))
+				reactionsUser.put(reaction.getName(), users.stream().filter(u -> u.equals(user)).count());
+		});
+		// Tri de la map
+		return reactionsUser.entrySet().stream()
+				.sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+				.collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+						(oldValue, newValue) -> oldValue, HashMap::new));
+	}
+
+	/**
+	 * Réponse à la commande !help
+	 * Envoie les commandes de Guy sur le channel passé en paramètre
+	 *
+	 * @param channel identifiant du channel
+	 */
+	private void sendHelpCmd(String channel) {
+		Log.info("Envoi des commandes de Guy sur le channel : " + channel);
+		String cmds = "Commandes : \\n" +
+				"\\t_*!awake*_ : si vous vous demandez si je suis réveillé\\n" +
+				"\\t_*!help*_ : pour apprendre tout ce que j'ai à vous offrir :heart:\\n" +
+				"\\t_*!plop*_ : plop\\n" +
+				"\\t_*!remaining*_ : le temps qu'il me reste...\\n" +
+				"\\t_*!stats*_ : statistiques des réactions";
+		// Envoi du message
+		try {
+			sendMessage(cmds, channel);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Réponse à la commande !stats
+	 * <p>
+	 * Envoie les statistiques de l'utilisateur en terme d'utilisation d'emoji
+	 *
+	 * @param reactionsUser Liste d'association < emoji, nb d'utilisations > de l'utilisateur concerné
+	 * @param channel       identifiant du channel sur lequel envoyer le message
+	 * @param prefix        préfixe à utiliser dans le message (communément l'identifiant de l'utilisateur concerné dans les channels publiques)
+	 */
+	private void sendReactionsMessage(Map<String, Long> reactionsUser, String channel, @Nullable String prefix) {
+		StringBuilder sb = new StringBuilder();
+		if (prefix != null) sb.append(prefix);
+		if (reactionsUser.isEmpty())
+			sb.append("Vous n'avez envoyé aucune réaction depuis mon réveil.");
+		else {
+			sb.append("Vos réactions depuis mon réveil :\\n");
+			reactionsUser.forEach((r, l) -> sb.append("\\t:").append(r).append(": : *")
+					.append(l).append("*\\n"));
+		}
+		// Envoi du message
+		try {
+			sendMessage(sb.toString(), channel);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Réponse à la commande !files
+	 *
+	 * @param files   Liste de fichiers de l'utilisateur concerné
+	 * @param channel identifiant du channel sur lequel envoyer le message
+	 * @param prefix  préfixe à utiliser dans le message (communément l'identifiant de l'utilisateur concerné dans les channels publiques)
+	 */
+	private void sendFilesInfo(List<File> files, String channel, @Nullable String prefix) {
+		StringBuilder sb = new StringBuilder();
+		if (prefix != null) sb.append(prefix);
+		if (files.isEmpty())
+			sb.append("Vous n'avez aucun fichier sur le Slack.");
+		else
+			sb.append("Vos possédez ").append(files.size()).append(" fichiers sur le Slack.");
+		// Envoi du message
+		try {
+			sendMessage(sb.toString(), channel);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Réponse à la commande !top3
+	 * <p>
+	 * Récupération des 3 meilleurs messages des 7 derniers jours du channel passé en paramètre
+	 *
+	 * @param channelId identifiant du channel
+	 * @throws Exception si une erreur est levée dans le récupération des fichiers ou dans l'envoi du message
+	 */
+	private void sendTop3(String channelId) throws Exception {
+		Instant sevenDaysAgo = Instant.now().minus(7, ChronoUnit.DAYS);
+		Long timestamp7DaysAgo = sevenDaysAgo.getEpochSecond();
+
+		Channel channel = api.getChannelById(channelId);
+		List<Message> messages = api.fetchAllMessages(channel.getId(), null, timestamp7DaysAgo);
+		System.out.println(messages.size() + " MESSAGES");
+		// FILTRE
+		messages = messages.stream().filter(message -> message.getReactions() != null).collect(Collectors.toList());
+		messages.sort((o1, o2) -> o2.countReactions() - o1.countReactions());
+
+		System.out.println(messages.size() + " MESSAGES AVEC REACTIONS");
+		List<Message> bestMessages = messages.subList(0, 3);
+
+		sendMessage("Voici le top 3 des messages du channel _*" + channel.getName() + "*_ de ces 7 derniers jours :fireworks: ! :", channel.getId());
+
+		sleep(5000);
+
+		for (int number = 2; number >= 0; number--) {
+			Message message = bestMessages.get(number);
+			String timestampStr = message.getTimestamp();
+
+			String urlTimestamp = timestampStr.replace(".", "");
+
+			StringBuilder sb = new StringBuilder();
+			sb.append("<https://guysbrushes.slack.com/archives/").append(channel.getId()).append("/p").append(urlTimestamp)
+					.append("|N°").append((number + 1)).append("> avec ").append(message.countReactions()).append(" réactions ");
+			for (Reaction reaction : message.getReactions())
+				sb.append(":").append(reaction.getName()).append(": ");
+			sb.append(": ");
+
+
+			api.postMessage(channel.getId(), sb.toString(), true,
+					null, null, null, null, null,
+					true, null, null);
+
+			sleep(15000);
 		}
 	}
 }
