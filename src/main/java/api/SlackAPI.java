@@ -7,37 +7,45 @@ import beans.Paging;
 import beans.channels.Channel;
 import beans.events.Message;
 import com.google.gson.stream.JsonReader;
+import converter.Converter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.*;
 import java.net.URL;
-import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.*;
 
 import static api.Attributes.*;
 import static api.Methods.*;
+import static api.URLParameters.*;
+import static api.URLParameters.CHANNEL;
+import static api.URLParameters.COUNT;
+import static api.URLParameters.NAME;
+import static api.URLParameters.PAGE;
+import static api.URLParameters.TEXT;
+import static api.URLParameters.TS;
+import static api.URLParameters.USER;
 import static converter.Converter.*;
 
 public class SlackAPI {
 	private static final Logger Log = LogManager.getLogger(SlackAPI.class);
-	
+
 	private static final String PROPERTIES_FILE = "slack.properties";
 	private static final String PROPERTY_BOT_TOKEN = "BOT_TOKEN";
 	private static final String PROPERTY_TOKEN = "TOKEN";
-	
+
 	private static final String API_URL = "https://slack.com/api/";
-	
+
 	private boolean bot;
-	
+
 	private JsonReader reader;
-	
+
 	private String stringUrl;
 	private String token;
 	private String botToken;
-	
+
 	/**
 	 * @param bot spécifie certains appels à l'API doivent s'effectuer en tant que bot
 	 */
@@ -45,32 +53,35 @@ public class SlackAPI {
 		this.bot = bot;
 		build();
 	}
-	
+
 	//  GETTERS
 	public boolean isBot() {
 		return bot;
 	}
-	
+
 	//  SETTERS
 	public void setBot(boolean bot) {
 		this.bot = bot;
 	}
-	
-	//	METHODES
+
+	//********************//
+	//	   METHODES       //
+	//********************//
+
 	private void build() {
 		Log.info("Lecture du fichier de configuration...");
 		Properties properties = new Properties();
-		
+
 		ClassLoader classLoader = getClass().getClassLoader();
 		InputStream propertyFile = null;
-		
+
 		try {
 			propertyFile = new FileInputStream(classLoader.getResource(PROPERTIES_FILE).getFile());
 		} catch (FileNotFoundException e) {
 			Log.error("Fichier de configuration \"" + PROPERTIES_FILE + "\" introuvable.");
 			e.printStackTrace();
 		}
-		
+
 		try {
 			properties.load(propertyFile);
 			token = properties.getProperty(PROPERTY_TOKEN);
@@ -79,7 +90,7 @@ public class SlackAPI {
 			Log.error("Impossible de charger les propriétés de configuration.");
 			e.printStackTrace();
 		}
-		
+
 		try {
 			propertyFile.close();
 		} catch (IOException e) {
@@ -87,7 +98,7 @@ public class SlackAPI {
 		}
 		Log.info("Lecture terminée.");
 	}
-	
+
 	/**
 	 * Construction de l'URL de l'appel à l'API
 	 *
@@ -115,7 +126,7 @@ public class SlackAPI {
 		sb.append("&pretty=1");
 		stringUrl = sb.toString();
 	}
-	
+
 	/**
 	 * GET de l'URL
 	 *
@@ -124,31 +135,22 @@ public class SlackAPI {
 	 */
 	private String readUrl() throws Exception {
 		Log.info("GET : - " + stringUrl);
-		BufferedReader reader = null;
-		try {
-			URL url = new URL(stringUrl);
-			URLConnection conn = url.openConnection();
-			//  Récupération des en-têtes
-//            Map<String, List<String>> map = conn.getHeaderFields();
-//            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-//                System.out.println(entry.getKey() + " : " + entry.getValue());
-//            }
-			// Récuparation du contenu
-			reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-			StringBuilder buffer = new StringBuilder();
-			int read;
-			char[] chars = new char[1024];
-			while ((read = reader.read(chars)) != -1)
-				buffer.append(chars, 0, read);
-			return buffer.toString();
-		} finally {
-			if (reader != null)
-				reader.close();
-		}
+		URL url = new URL(stringUrl);
+		BufferedReader in = new BufferedReader(
+				new InputStreamReader(url.openStream()));
+
+		String inputLine;
+		StringBuilder sb = new StringBuilder();
+		while ((inputLine = in.readLine()) != null)
+			sb.append(inputLine);
+		in.close();
+		return sb.toString();
 	}
-	
-	//  METHODES D'APPEL A L'API
-	
+
+	//***********************************//
+	//	   METHODES D'APPEL A L'API      //
+	//***********************************//
+
 	/**
 	 * Appel à la méthode "api.test"
 	 * Test de l'API
@@ -162,7 +164,7 @@ public class SlackAPI {
 		buildUrl(METHOD_API_TEST, null, false);
 		return readUrl();
 	}
-	
+
 	/**
 	 * Appel à la méthode "auth.test"
 	 * Test de l'authentification
@@ -176,7 +178,7 @@ public class SlackAPI {
 		buildUrl(METHOD_AUTHENTIFICATION_TEST, null, false);
 		return readUrl();
 	}
-	
+
 	/**
 	 * Appel à la méthode "rtm.connect"
 	 * Demande une url de connection pour WebSocket
@@ -191,11 +193,11 @@ public class SlackAPI {
 		parameters.put("scope", URLEncoder.encode("rtm:stream", "UTF-8"));
 		// Construction de l'URL
 		buildUrl(METHOD_RTM_CONNECT, parameters, true);
-		
+
 		boolean ok;
 		String name;
 		Map<String, String> map = new HashMap<>();
-		
+
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -225,7 +227,7 @@ public class SlackAPI {
 		reader.close();
 		return map;
 	}
-	
+
 	/**
 	 * Appel à la méthode "channels.list"
 	 * Liste les channels
@@ -237,11 +239,11 @@ public class SlackAPI {
 	public List<Channel> listChannels() throws Exception {
 		Log.info("Enumération des channels");
 		buildUrl(METHOD_LIST_CHANNELS, null, false);
-		
+
 		List<Channel> channels = null;
 		boolean ok;
 		String name;
-		
+
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -263,10 +265,10 @@ public class SlackAPI {
 		}
 		reader.endObject();
 		reader.close();
-		
+
 		return channels;
 	}
-	
+
 	/**
 	 * Appel à la méthode "files.list"
 	 * Liste les fichiers
@@ -283,18 +285,18 @@ public class SlackAPI {
 		Log.info("Enumération des fichiers");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		if (channelId != null) parameters.put("channel", channelId);
-		if (count != null) parameters.put("count", count.toString());
-		if (page != null) parameters.put("page", page.toString());
-		if (userId != null) parameters.put("user", userId);
+		if (channelId != null) parameters.put(CHANNEL, channelId);
+		if (count != null) parameters.put(COUNT, count.toString());
+		if (page != null) parameters.put(PAGE, page.toString());
+		if (userId != null) parameters.put(USER, userId);
 		// Construction de l'URL
 		buildUrl(METHOD_LIST_FILES, parameters, false);
-		
+
 		List<File> files = null;
 		Paging paging = null;
 		boolean ok;
 		String name;
-		
+
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -323,36 +325,10 @@ public class SlackAPI {
 		}
 		reader.endObject();
 		reader.close();
-		
+
 		return new AbstractMap.SimpleEntry<>(files, paging);
 	}
-	
-	/**
-	 * Récupération de tous les fichiers
-	 *
-	 * @param channelId identifiant du channel
-	 * @param count     fichiers à récupérer par appel à la méthode "files.list"
-	 * @param userId    identifiant de l'utilisateur sur lequel filtrer
-	 * @return une liste de fichiers
-	 * @throws Exception Si l'URL est malformée
-	 */
-	public List<File> listAllFiles(@Nullable String channelId, @Nullable Integer count, @Nullable String userId) throws Exception {
-		Log.info("Enumération de tous les fichiers");
-		List<File> files = new ArrayList<>();
-		Integer page = 1;
-		Boolean hasNextPage = true;
-		Paging paging;
-		
-		while (hasNextPage) {
-			Map.Entry<List<File>, Paging> fetchedFiles = listFiles(channelId, count, page, userId);
-			paging = fetchedFiles.getValue();
-			files.addAll(fetchedFiles.getKey());
-			hasNextPage = !Objects.equals(paging.getPage(), paging.getPages());
-			page++;
-		}
-		return files;
-	}
-	
+
 	/**
 	 * Appel à la méthode "users.list"
 	 * Liste les membres
@@ -364,11 +340,11 @@ public class SlackAPI {
 	public List<Member> listMembers() throws Exception {
 		Log.info("Listage des membres");
 		buildUrl(METHOD_LIST_USERS, null, false);
-		
+
 		List<Member> users = null;
 		boolean ok;
 		String name;
-		
+
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -394,42 +370,58 @@ public class SlackAPI {
 		}
 		reader.endObject();
 		reader.close();
-		
+
 		return users;
 	}
-	
+
 	/**
 	 * Appel à la méthode "chat.postMessage"
 	 * Poste un message dans un channel
 	 *
-	 * @param channelId   identifiant du channel
-	 * @param text        texte à envoyer
-	 * @param iconUrl     URL d'une image utilisée comme icône au message
-	 * @param username    nom du bot
-	 * @param attachments Un tableau JSON de pièce jointes, {@link Attachment} see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
+	 * @param channelId      identifiant du channel
+	 * @param text           texte à envoyer
+	 * @param iconUrl        URL d'une image utilisée comme icône au message
+	 * @param username       nom du bot
+	 * @param attachments    Un tableau JSON de pièce jointes, {@link Attachment} see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
+	 * @param iconEmoji      emoji utilisé comme icône du message
+	 * @param threadTS       identifiant timestamp du message auquel répondre
+	 * @param replyBroadcast (Défaut : {@code false}) à utiliser en association avec threadTS, {@code true} si la réponse doit être visible dans le channel ou dans la conversation
+	 * @param unfurlLinks    {@code true} pour activer le déroulement (l'intégration) du contenu texte
+	 * @param unfurlMedia    {@code false} pour désactiver le déroulement de contenu média
 	 * @return la réponse à la requête
 	 * @throws Exception si l'URL est malformée
 	 * @see <a href="https://api.slack.com/methods/chat.postMessage">https://api.slack.com/methods/chat.postMessage</a>
 	 */
-	public String postMessage(String channelId, String text, @Nullable String iconUrl, @Nullable String username,
-							  @Nullable Attachment[] attachments, @Nullable String iconEmoji) throws Exception {
+	public String postMessage(String channelId, String text, @Nullable Boolean asUser, @Nullable Attachment[] attachments,
+							  @Nullable String iconEmoji, @Nullable String iconUrl, @Nullable Boolean replyBroadcast,
+							  @Nullable String threadTS, @Nullable Boolean unfurlLinks, @Nullable Boolean unfurlMedia,
+							  @Nullable String username) throws Exception {
 		Log.info("Envoi d'un message");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("channel", channelId);
-		parameters.put("text", URLEncoder.encode(text, "UTF-8"));
-		if (iconUrl != null) parameters.put("icon_url", URLEncoder.encode(iconUrl, "UTF-8"));
-		if (username != null) parameters.put("username", username);
+		parameters.put(CHANNEL, channelId);
+		parameters.put(TEXT, URLEncoder.encode(text, "UTF-8"));
+		if (asUser != null) parameters.put(AS_USER, asUser.toString());
 		if (attachments != null)
-			parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
+			parameters.put(ATTACHMENTS, URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
 		if (iconEmoji != null)
-			parameters.put("icon_emoji", iconEmoji);
+			parameters.put(ICON_EMOJI, iconEmoji);
+		if (iconUrl != null) parameters.put(ICON_URL, URLEncoder.encode(iconUrl, "UTF-8"));
+		if (replyBroadcast != null && threadTS != null)
+			parameters.put(REPLY_BROADCAST, replyBroadcast.toString());
+		if (threadTS != null)
+			parameters.put(THREAD_TS, threadTS);
+		if (unfurlLinks != null)
+			parameters.put(UNFURL_LINKS, unfurlLinks.toString());
+		if (unfurlMedia != null)
+			parameters.put(UNFURL_MEDIA, unfurlMedia.toString());
+		if (username != null) parameters.put(USERNAME, username);
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_POST_MESSAGE, parameters, bot);
 		// Lecture de l'URL
 		return readUrl();
 	}
-	
+
 	/**
 	 * Appel à la méthode "chat.meMessage"
 	 * Poste un meMessage dans le channel
@@ -443,14 +435,14 @@ public class SlackAPI {
 		Log.info("Envoi d'un MeMessage");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("channel", channelId);
-		parameters.put("text", URLEncoder.encode(text, "UTF-8"));
+		parameters.put(CHANNEL, channelId);
+		parameters.put(TEXT, URLEncoder.encode(text, "UTF-8"));
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_ME_MESSAGE, parameters, bot);
 		// Lecture de l'URL
 		return readUrl();
 	}
-	
+
 	/**
 	 * Appel à la méthode "chat.update"
 	 * Met à jour un message dans un channel
@@ -468,24 +460,23 @@ public class SlackAPI {
 	 */
 	public boolean updateMEssage(String channelId, String text, String ts, @Nullable Boolean asUser, @Nullable Attachment[] attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception {
 		Log.info("Edition d'un message");
-		boolean ok = false;
 		// Construction des paramètres
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("channel", channelId);
-		parameters.put("text", URLEncoder.encode(text, "UTF-8"));
-		parameters.put("ts", ts);
-		if (asUser != null) parameters.put("as_user", asUser.toString());
+		parameters.put(CHANNEL, channelId);
+		parameters.put(TEXT, URLEncoder.encode(text, "UTF-8"));
+		parameters.put(TS, ts);
+		if (asUser != null) parameters.put(AS_USER, asUser.toString());
 		if (attachments != null)
-			parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
-		if (linkNames != null) parameters.put("link_names", linkNames.toString());
-		if (parse != null) parameters.put("parse", parse);
+			parameters.put(ATTACHMENTS, URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
+		if (linkNames != null) parameters.put(LINK_NAMES, linkNames.toString());
+		if (parse != null) parameters.put(PARSE, parse);
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_UPDATE, parameters, false);
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
 		reader.beginObject();
-		ok = readOk(reader);
+		boolean ok = readOk(reader);
 		if (!ok) {
 			System.err.println(json);
 			// Récupération du message d'erreur
@@ -493,10 +484,10 @@ public class SlackAPI {
 		} else
 			while (reader.hasNext()) reader.skipValue();
 		reader.endObject();
-		
+
 		return ok;
 	}
-	
+
 	/**
 	 * Appel à la méthode "chat.postEphemeral"
 	 * Poste un message éphémère, visible seulement à l'utilisateur assigné, à un channel publique, channel privé, ou message directe
@@ -516,20 +507,20 @@ public class SlackAPI {
 		Log.info("Envoi d'un message ephémère");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("channel", channelId);
-		parameters.put("text", URLEncoder.encode(text, "UTF-8"));
-		parameters.put("user", userId);
-		if (asUser != null) parameters.put("as_user", asUser.toString());
+		parameters.put(CHANNEL, channelId);
+		parameters.put(TEXT, URLEncoder.encode(text, "UTF-8"));
+		parameters.put(USER, userId);
+		if (asUser != null) parameters.put(AS_USER, asUser.toString());
 		if (attachments != null)
-			parameters.put("attachments", URLEncoder.encode(AttachmentsToJson(attachments), "UTF-8"));
-		if (linkNames != null) parameters.put("link_names", linkNames.toString());
-		if (parse != null) parameters.put("parse", parse);
+			parameters.put(ATTACHMENTS, URLEncoder.encode(Converter.AttachmentsToJson(attachments), "UTF-8"));
+		if (linkNames != null) parameters.put(LINK_NAMES, linkNames.toString());
+		if (parse != null) parameters.put(PARSE, parse);
 		// Construction de l'URL
 		buildUrl(METHOD_CHAT_POST_EPHEMERAL, parameters, bot);
 		// Lecture de l'URL
 		return readUrl();
 	}
-	
+
 	/**
 	 * Appel à la méthode "reactions.add"
 	 * Ajoute une réaction
@@ -546,11 +537,11 @@ public class SlackAPI {
 		boolean ok;
 		// Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("name", reactionName);
-		if (channelId != null) parameters.put("channel", channelId);
-		if (file != null) parameters.put("file", file);
-		if (fileComment != null) parameters.put("file_comment", fileComment);
-		if (timestamp != null) parameters.put("timestamp", timestamp);
+		parameters.put(NAME, reactionName);
+		if (channelId != null) parameters.put(CHANNEL, channelId);
+		if (file != null) parameters.put(FILE, file);
+		if (fileComment != null) parameters.put(FILE_COMMENT, fileComment);
+		if (timestamp != null) parameters.put(TIMESTAMP, timestamp);
 		// Construction de l'URL
 		buildUrl(METHOD_REACTION_ADD, parameters, bot);
 		//  Lecture de l'URL
@@ -565,7 +556,7 @@ public class SlackAPI {
 		}
 		reader.endObject();
 	}
-	
+
 	/**
 	 * Appel à la méthode "channels.history"
 	 * Récupére les {@link Message} d'un channel (du plus récent au plus vieux)
@@ -583,15 +574,15 @@ public class SlackAPI {
 		Log.info("Récupération des messages du channel \"" + channelId + "\"");
 		//  Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put("channel", channelId);
-		if (count != null) parameters.put("count", count.toString());
-		if (inclusive != null) parameters.put("inclusive", inclusive.toString());
-		if (latest != null) parameters.put("latest", latest);
-		if (oldest != null) parameters.put("oldest", oldest);
-		if (unread != null) parameters.put("unread", unread.toString());
+		parameters.put(CHANNEL, channelId);
+		if (count != null) parameters.put(COUNT, count.toString());
+		if (inclusive != null) parameters.put(INCLUSIVE, inclusive.toString());
+		if (latest != null) parameters.put(LATEST, latest);
+		if (oldest != null) parameters.put(OLDEST, oldest);
+		if (unread != null) parameters.put(UNREAD, unread.toString());
 		// Construction de l'URL
 		buildUrl(METHOD_CHANNELS_HISTORY, parameters, false);
-		
+
 		List<Message> messages = null;
 		Boolean hasMore = null;
 		boolean ok;
@@ -626,46 +617,7 @@ public class SlackAPI {
 		reader.close();
 		return new AbstractMap.SimpleEntry<>(messages, hasMore);
 	}
-	
-	/**
-	 * Récupération de tous les messages du channel
-	 *
-	 * @param channelId identifiant du channel
-	 * @param count     messages à récupérer par appel à la méthode "channels.history"
-	 * @return une liste de messages
-	 */
-	public List<Message> fetchAllMessages(String channelId, @Nullable Integer count) throws Exception {
-		Log.info("Récupération de tous les messages du channel \"" + channelId + "\"");
-		List<Message> messages = new ArrayList<>();
-		String lastTs = null;
-		boolean hasMore = true;
-		while (hasMore) {
-			Map.Entry<List<Message>, Boolean> messagesFetched = fetchMessages(channelId, count, null, lastTs, null, null);
-			hasMore = messagesFetched.getValue();
-			lastTs = messagesFetched.getKey().get(messagesFetched.getKey().size() - 1).getTimestamp();
-			messages.addAll(messagesFetched.getKey());
-		}
-		return messages;
-	}
-	
-	/**
-	 * Conversion du tableau de {@link Attachment} en une chaîne de caractère JSON
-	 *
-	 * @param attachments un tableau de pièce jointe, {@link Attachment}
-	 * @return un chaîne de caractère JSON
-	 */
-	private static String AttachmentsToJson(Attachment[] attachments) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("[");
-		for (int i = 0; i < attachments.length; i++) {
-			sb.append(attachments[i].json());
-			if (i != attachments.length - 1)
-				sb.append(",");
-		}
-		sb.append("]");
-		return sb.toString();
-	}
-	
+
 	/**
 	 * Appel à la méthode "users.setPresence"
 	 * Edite manuellement la présence de l'utilisateur (ici, le bot)
@@ -676,16 +628,124 @@ public class SlackAPI {
 	 */
 	public String setPresence(boolean presence) throws Exception {
 		Log.info("Edition de la présence : " + presence);
-		boolean ok = false;
 		// Construction des paramètres
 		Map<String, String> parameters = new HashMap<>();
 		if (presence)
-			parameters.put("presence", "auto");
+			parameters.put(PRESENCE, AUTO);
 		else
-			parameters.put("presence", "away");
+			parameters.put(PRESENCE, AWAY);
 		// Construction de l'URL
 		buildUrl(METHOD_SET_PRESENCE, parameters, true);
 		// Lecture de l'URL
 		return readUrl();
+	}
+
+	//************************************************************//
+	//	   METHODES NE FAISANT PAS APPEL DIRECTEMENT A L'API      //
+	//************************************************************//
+
+	/**
+	 * Récupération de tous les fichiers
+	 *
+	 * @param channelId identifiant du channel
+	 * @param count     fichiers à récupérer par appel à la méthode "files.list"
+	 * @param userId    identifiant de l'utilisateur sur lequel filtrer
+	 * @return une liste de fichiers
+	 * @throws Exception si une erreur est levée lors de la récupération des fichiers
+	 */
+	public List<File> listAllFiles(@Nullable String channelId, @Nullable Integer count, @Nullable String userId) throws Exception {
+		Log.info("Enumération de tous les fichiers");
+		List<File> files = new ArrayList<>();
+		Integer page = 1;
+		Boolean hasNextPage = true;
+		Paging paging;
+
+		while (hasNextPage) {
+			Map.Entry<List<File>, Paging> fetchedFiles = listFiles(channelId, count, page, userId);
+			paging = fetchedFiles.getValue();
+			files.addAll(fetchedFiles.getKey());
+			hasNextPage = !Objects.equals(paging.getPage(), paging.getPages());
+			page++;
+		}
+		return files;
+	}
+
+	/**
+	 * Récupération de tous les messages du channel
+	 *
+	 * @param channelId identifiant du channel
+	 * @param count     messages à récupérer par appel à la méthode "channels.history"
+	 * @param oldest    timestamp du plus vieux à message à récupérer
+	 * @return une liste de messages
+	 * @throws Exception si une erreur est levée lors de la récupération des fichiers
+	 */
+	public List<Message> fetchAllMessages(String channelId, @Nullable Integer count, @Nullable Long oldest) throws Exception {
+		Log.info("Récupération de tous les messages du channel \"" + channelId + "\"");
+		List<Message> messages = new ArrayList<>();
+		String oldestTimestamp = null;
+		if (oldest != null)
+			oldestTimestamp = oldest.toString();
+		String lastTs = null;
+		boolean hasMore = true;
+		while (hasMore) {
+			Map.Entry<List<Message>, Boolean> messagesFetched = fetchMessages(channelId, count, null, lastTs, oldestTimestamp, null);
+			hasMore = messagesFetched.getValue();
+			if (hasMore)
+				lastTs = messagesFetched.getKey().get(messagesFetched.getKey().size() - 1).getTimestamp();
+			messages.addAll(messagesFetched.getKey());
+		}
+		return messages;
+	}
+
+	/**
+	 * Retourne le channel correspondant à l'identifiant passé en paramètre
+	 *
+	 * @param id identifiant du channel à rechercher
+	 * @return le channel correspondant (si trouvé), {@code null} sinon
+	 * @throws Exception si une erreur est levée lors de la récupération des channels
+	 */
+	public Channel getChannelById(String id) throws Exception {
+		List<Channel> channels = this.listChannels();
+		Optional<Channel> channel = channels.stream().filter(ch -> ch.getId().equals(id)).findFirst();
+		return channel.orElse(null);
+	}
+
+	/**
+	 * Retourne le channel correspondant au nom passé en paramètre
+	 *
+	 * @param name nom du channel à rechercher
+	 * @return le channel correspondant (si trouvé), {@code null} sinon
+	 * @throws Exception si une erreur est levée lors de la récupération des channels
+	 */
+	public Channel getChannelByName(String name) throws Exception {
+		List<Channel> channels = this.listChannels();
+		Optional<Channel> channel = channels.stream().filter(ch -> ch.getName().equals(name)).findFirst();
+		return channel.orElse(null);
+	}
+
+	/**
+	 * Retourne l'utilisateur correspondant à l'identifiant passé en paramètre
+	 *
+	 * @param id identifiant de l'utilisateur à rechercher
+	 * @return l'utilisateur correspondant (si trouvé) {@code null} sinon
+	 * @throws Exception si une erreur est levée lors de la récupération des utilisateurs
+	 */
+	public Member getMemberById(String id) throws Exception {
+		List<Member> members = this.listMembers();
+		Optional<Member> member = members.stream().filter(m -> m.getId().equals(id)).findFirst();
+		return member.orElse(null);
+	}
+
+	/**
+	 * Retourne l'utilisateur correspondant au nom (username) passé en paramètre
+	 *
+	 * @param name nom (username) de l'utilisateur à rechercher
+	 * @return l'utilisateur correspondant (si trouvé) {@code null} sinon
+	 * @throws Exception si une erreur est levée lors de la récupération des utilisateurs
+	 */
+	public Member getMemberByName(String name) throws Exception {
+		List<Member> members = this.listMembers();
+		Optional<Member> member = members.stream().filter(m -> m.getName().equals(name)).findFirst();
+		return member.orElse(null);
 	}
 }
