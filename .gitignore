@@ -17,4 +17,3 @@ logs/
 target/
 /.idea/
 /src/main/resources/slack.properties
-!/src/main/resources/slack.properties
