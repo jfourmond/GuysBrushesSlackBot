@@ -147,7 +147,7 @@ public abstract class Bot {
 			message = message.concat(t).concat("\\n");
 		}
 		message = message.concat("\",\"channel\" : \"" + channelId + "\"}");
-        Log.info(message);
+		Log.info(message);
 		return session.getRemote().sendStringByFuture(message);
 	}
 

@@ -6,11 +6,11 @@ public class Commands {
     public static final Map<String, String> cmdsMap;
 
     static {
-        Map<String, String> aMap = new HashMap();
-        aMap.put("!awake", "si vous vous demandez si je suis réveillé");
-        aMap.put("!files", "pour savoir le nombre de fichiers que vous avez posté");
-        aMap.put("!help", "pour apprendre tout ce que j'ai à vous offrir :heart:");
-        aMap.put("!plop", "plop");
+		Map<String, String> aMap = new LinkedHashMap<>();
+		aMap.put("!awake", "si vous vous demandez si je suis réveillé");
+		aMap.put("!files", "pour savoir le nombre de fichiers que vous avez posté");
+		aMap.put("!help", "pour apprendre tout ce que j'ai à vous offrir :heart:");
+		aMap.put("!plop", "plop");
         aMap.put("!remaining", "le temps qu'il me reste...");
         aMap.put("!stats", " statistiques des réactions");
         aMap.put("!top3", "pour avoir le top 3 des messages les plus populaires");
