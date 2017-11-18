@@ -31,21 +31,21 @@ import static converter.Converter.*;
 
 public class SlackAPI {
 	private static final Logger Log = LogManager.getLogger(SlackAPI.class);
-
+	
 	private static final String PROPERTIES_FILE = "slack.properties";
 	private static final String PROPERTY_BOT_TOKEN = "BOT_TOKEN";
 	private static final String PROPERTY_TOKEN = "TOKEN";
-
+	
 	private static final String API_URL = "https://slack.com/api/";
-
+	
 	private boolean bot;
-
+	
 	private JsonReader reader;
-
+	
 	private String stringUrl;
 	private String token;
 	private String botToken;
-
+	
 	/**
 	 * @param bot spécifie certains appels à l'API doivent s'effectuer en tant que bot
 	 */
@@ -53,35 +53,35 @@ public class SlackAPI {
 		this.bot = bot;
 		build();
 	}
-
+	
 	//  GETTERS
 	public boolean isBot() {
 		return bot;
 	}
-
+	
 	//  SETTERS
 	public void setBot(boolean bot) {
 		this.bot = bot;
 	}
-
+	
 	//********************//
 	//	   METHODES       //
 	//********************//
-
+	
 	private void build() {
 		Log.info("Lecture du fichier de configuration...");
 		Properties properties = new Properties();
-
+		
 		ClassLoader classLoader = getClass().getClassLoader();
 		InputStream propertyFile = null;
-
+		
 		try {
 			propertyFile = new FileInputStream(classLoader.getResource(PROPERTIES_FILE).getFile());
 		} catch (FileNotFoundException e) {
 			Log.error("Fichier de configuration \"" + PROPERTIES_FILE + "\" introuvable.");
 			e.printStackTrace();
 		}
-
+		
 		try {
 			properties.load(propertyFile);
 			token = properties.getProperty(PROPERTY_TOKEN);
@@ -90,7 +90,7 @@ public class SlackAPI {
 			Log.error("Impossible de charger les propriétés de configuration.");
 			e.printStackTrace();
 		}
-
+		
 		try {
 			propertyFile.close();
 		} catch (IOException e) {
@@ -98,7 +98,7 @@ public class SlackAPI {
 		}
 		Log.info("Lecture terminée.");
 	}
-
+	
 	/**
 	 * Construction de l'URL de l'appel à l'API
 	 *
@@ -126,7 +126,7 @@ public class SlackAPI {
 		sb.append("&pretty=1");
 		stringUrl = sb.toString();
 	}
-
+	
 	/**
 	 * GET de l'URL
 	 *
@@ -138,7 +138,7 @@ public class SlackAPI {
 		URL url = new URL(stringUrl);
 		BufferedReader in = new BufferedReader(
 				new InputStreamReader(url.openStream()));
-
+		
 		String inputLine;
 		StringBuilder sb = new StringBuilder();
 		while ((inputLine = in.readLine()) != null)
@@ -146,11 +146,11 @@ public class SlackAPI {
 		in.close();
 		return sb.toString();
 	}
-
+	
 	//***********************************//
 	//	   METHODES D'APPEL A L'API      //
 	//***********************************//
-
+	
 	/**
 	 * Appel à la méthode "api.test"
 	 * Test de l'API
@@ -164,7 +164,7 @@ public class SlackAPI {
 		buildUrl(METHOD_API_TEST, null, false);
 		return readUrl();
 	}
-
+	
 	/**
 	 * Appel à la méthode "auth.test"
 	 * Test de l'authentification
@@ -178,7 +178,7 @@ public class SlackAPI {
 		buildUrl(METHOD_AUTHENTIFICATION_TEST, null, false);
 		return readUrl();
 	}
-
+	
 	/**
 	 * Appel à la méthode "rtm.connect"
 	 * Demande une url de connection pour WebSocket
@@ -193,11 +193,11 @@ public class SlackAPI {
 		parameters.put("scope", URLEncoder.encode("rtm:stream", "UTF-8"));
 		// Construction de l'URL
 		buildUrl(METHOD_RTM_CONNECT, parameters, true);
-
+		
 		boolean ok;
 		String name;
 		Map<String, String> map = new HashMap<>();
-
+		
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -227,7 +227,7 @@ public class SlackAPI {
 		reader.close();
 		return map;
 	}
-
+	
 	/**
 	 * Appel à la méthode "channels.list"
 	 * Liste les channels
@@ -239,11 +239,11 @@ public class SlackAPI {
 	public List<Channel> listChannels() throws Exception {
 		Log.info("Enumération des channels");
 		buildUrl(METHOD_LIST_CHANNELS, null, false);
-
+		
 		List<Channel> channels = null;
 		boolean ok;
 		String name;
-
+		
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -265,10 +265,10 @@ public class SlackAPI {
 		}
 		reader.endObject();
 		reader.close();
-
+		
 		return channels;
 	}
-
+	
 	/**
 	 * Appel à la méthode "files.list"
 	 * Liste les fichiers
@@ -291,12 +291,12 @@ public class SlackAPI {
 		if (userId != null) parameters.put(USER, userId);
 		// Construction de l'URL
 		buildUrl(METHOD_LIST_FILES, parameters, false);
-
+		
 		List<File> files = null;
 		Paging paging = null;
 		boolean ok;
 		String name;
-
+		
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -325,10 +325,10 @@ public class SlackAPI {
 		}
 		reader.endObject();
 		reader.close();
-
+		
 		return new AbstractMap.SimpleEntry<>(files, paging);
 	}
-
+	
 	/**
 	 * Appel à la méthode "users.list"
 	 * Liste les membres
@@ -340,11 +340,11 @@ public class SlackAPI {
 	public List<Member> listMembers() throws Exception {
 		Log.info("Listage des membres");
 		buildUrl(METHOD_LIST_USERS, null, false);
-
+		
 		List<Member> users = null;
 		boolean ok;
 		String name;
-
+		
 		// Lecture de l'URL
 		String json = readUrl();
 		reader = new JsonReader(new StringReader(json));
@@ -370,10 +370,10 @@ public class SlackAPI {
 		}
 		reader.endObject();
 		reader.close();
-
+		
 		return users;
 	}
-
+	
 	/**
 	 * Appel à la méthode "chat.postMessage"
 	 * Poste un message dans un channel
@@ -421,7 +421,7 @@ public class SlackAPI {
 		// Lecture de l'URL
 		return readUrl();
 	}
-
+	
 	/**
 	 * Appel à la méthode "chat.meMessage"
 	 * Poste un meMessage dans le channel
@@ -442,7 +442,7 @@ public class SlackAPI {
 		// Lecture de l'URL
 		return readUrl();
 	}
-
+	
 	/**
 	 * Appel à la méthode "chat.update"
 	 * Met à jour un message dans un channel
@@ -484,10 +484,10 @@ public class SlackAPI {
 		} else
 			while (reader.hasNext()) reader.skipValue();
 		reader.endObject();
-
+		
 		return ok;
 	}
-
+	
 	/**
 	 * Appel à la méthode "chat.postEphemeral"
 	 * Poste un message éphémère, visible seulement à l'utilisateur assigné, à un channel publique, channel privé, ou message directe
@@ -520,24 +520,25 @@ public class SlackAPI {
 		// Lecture de l'URL
 		return readUrl();
 	}
-
+	
 	/**
 	 * Appel à la méthode "reactions.add"
 	 * Ajoute une réaction
 	 *
-	 * @param reactionName réaction à ajouter (code emoji)
-	 * @param channelId    identifiant du channel
-	 * @param file         fichier de la réaction
-	 * @param fileComment  commentaire du fichier de la réaction
-	 * @param timestamp    identifiant du message de la réaction
+	 * @param name        réaction à ajouter (code emoji)
+	 * @param channelId   identifiant du channel
+	 * @param file        fichier de la réaction
+	 * @param fileComment commentaire du fichier de la réaction
+	 * @param timestamp   identifiant du message de la réaction
+	 * @throws Exception si l'URL est malformée ou si la requête retourne une erreur
 	 * @see <a href="https://api.slack.com/methods/reactions.add">https://api.slack.com/methods/reactions.add</a>
 	 */
-	public void addReaction(String reactionName, @Nullable String channelId, @Nullable String file, @Nullable String fileComment, @Nullable String timestamp) throws Exception {
+	public void addReaction(String name, @Nullable String channelId, @Nullable String file, @Nullable String fileComment, @Nullable String timestamp) throws Exception {
 		Log.info("Ajout d'une réaction");
 		boolean ok;
 		// Construction des paramètres optionnels
 		Map<String, String> parameters = new HashMap<>();
-		parameters.put(NAME, reactionName);
+		parameters.put(NAME, name);
 		if (channelId != null) parameters.put(CHANNEL, channelId);
 		if (file != null) parameters.put(FILE, file);
 		if (fileComment != null) parameters.put(FILE_COMMENT, fileComment);
@@ -556,7 +557,44 @@ public class SlackAPI {
 		}
 		reader.endObject();
 	}
-
+	
+	/**
+	 * Appel à la méthode "reactions.remove"
+	 * Supprime une réaction
+	 *
+	 * @param name        réaction à ajouter (code emoji)
+	 * @param channelId   identifiant du channel
+	 * @param file        fichier de la réaction
+	 * @param fileComment commentaire du fichier de la réaction
+	 * @param timestamp   identifiant du message de la réaction
+	 * @throws Exception si l'URL est malformée ou si la requête retourne une erreur
+	 * @see <a href="https://api.slack.com/methods/reactions.add">https://api.slack.com/methods/reactions.remove</a>
+	 */
+	public void removeReaction(String name, @Nullable String channelId, @Nullable String file, @Nullable String fileComment, @Nullable String timestamp) throws Exception {
+		Log.info("Suppression d'une réaction");
+		boolean ok;
+		// Construction des paramètres optionnels
+		Map<String, String> parameters = new HashMap<>();
+		parameters.put(NAME, name);
+		if (channelId != null) parameters.put(CHANNEL, channelId);
+		if (file != null) parameters.put(FILE, file);
+		if (fileComment != null) parameters.put(FILE_COMMENT, fileComment);
+		if (timestamp != null) parameters.put(TIMESTAMP, timestamp);
+		// Construction de l'URL
+		buildUrl(METHOD_REACTION_REMOVE, parameters, bot);
+		//  Lecture de l'URL
+		String json = readUrl();
+		reader = new JsonReader(new StringReader(json));
+		reader.beginObject();
+		ok = readOk(reader);
+		if (!ok) {
+			System.err.println(json);
+			// Récupération du message d'erreur
+			throw new Exception(readError(reader));
+		}
+		reader.endObject();
+	}
+	
 	/**
 	 * Appel à la méthode "channels.history"
 	 * Récupére les {@link Message} d'un channel (du plus récent au plus vieux)
@@ -582,7 +620,7 @@ public class SlackAPI {
 		if (unread != null) parameters.put(UNREAD, unread.toString());
 		// Construction de l'URL
 		buildUrl(METHOD_CHANNELS_HISTORY, parameters, false);
-
+		
 		List<Message> messages = null;
 		Boolean hasMore = null;
 		boolean ok;
@@ -617,7 +655,7 @@ public class SlackAPI {
 		reader.close();
 		return new AbstractMap.SimpleEntry<>(messages, hasMore);
 	}
-
+	
 	/**
 	 * Appel à la méthode "users.setPresence"
 	 * Edite manuellement la présence de l'utilisateur (ici, le bot)
@@ -639,11 +677,11 @@ public class SlackAPI {
 		// Lecture de l'URL
 		return readUrl();
 	}
-
+	
 	//************************************************************//
 	//	   METHODES NE FAISANT PAS APPEL DIRECTEMENT A L'API      //
 	//************************************************************//
-
+	
 	/**
 	 * Récupération de tous les fichiers
 	 *
@@ -659,7 +697,7 @@ public class SlackAPI {
 		Integer page = 1;
 		Boolean hasNextPage = true;
 		Paging paging;
-
+		
 		while (hasNextPage) {
 			Map.Entry<List<File>, Paging> fetchedFiles = listFiles(channelId, count, page, userId);
 			paging = fetchedFiles.getValue();
@@ -669,7 +707,7 @@ public class SlackAPI {
 		}
 		return files;
 	}
-
+	
 	/**
 	 * Récupération de tous les messages du channel
 	 *
@@ -696,7 +734,7 @@ public class SlackAPI {
 		}
 		return messages;
 	}
-
+	
 	/**
 	 * Retourne le channel correspondant à l'identifiant passé en paramètre
 	 *
@@ -709,7 +747,7 @@ public class SlackAPI {
 		Optional<Channel> channel = channels.stream().filter(ch -> ch.getId().equals(id)).findFirst();
 		return channel.orElse(null);
 	}
-
+	
 	/**
 	 * Retourne le channel correspondant au nom passé en paramètre
 	 *
@@ -722,7 +760,7 @@ public class SlackAPI {
 		Optional<Channel> channel = channels.stream().filter(ch -> ch.getName().equals(name)).findFirst();
 		return channel.orElse(null);
 	}
-
+	
 	/**
 	 * Retourne l'utilisateur correspondant à l'identifiant passé en paramètre
 	 *
@@ -735,7 +773,7 @@ public class SlackAPI {
 		Optional<Member> member = members.stream().filter(m -> m.getId().equals(id)).findFirst();
 		return member.orElse(null);
 	}
-
+	
 	/**
 	 * Retourne l'utilisateur correspondant au nom (username) passé en paramètre
 	 *

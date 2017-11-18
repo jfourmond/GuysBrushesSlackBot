@@ -12,6 +12,7 @@ class Methods {
 	static final String METHOD_LIST_FILES = "files.list";
 	static final String METHOD_LIST_USERS = "users.list";
 	static final String METHOD_REACTION_ADD = "reactions.add";
+	static final String METHOD_REACTION_REMOVE = "reactions.remove";
 	static final String METHOD_RTM_CONNECT = "rtm.connect";
 	static final String METHOD_SET_PRESENCE = "users.setPresence";
 }
