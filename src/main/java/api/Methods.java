@@ -12,6 +12,7 @@ public class Methods {
     public static final String METHOD_LIST_FILES = "files.list";
     public static final String METHOD_LIST_USERS = "users.list";
     public static final String METHOD_REACTION_ADD = "reactions.add";
+    static final String METHOD_REACTION_REMOVE = "reactions.remove";
     public static final String METHOD_RTM_CONNECT = "rtm.connect";
     public static final String METHOD_SET_PRESENCE = "users.setPresence";
 }

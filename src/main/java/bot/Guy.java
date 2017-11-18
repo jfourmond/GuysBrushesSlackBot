@@ -70,13 +70,14 @@ public class Guy extends Bot {
 
     public void onConnect(Session session) {
         super.onConnect(session);
-        channels.forEach(channel -> {
-            try {
-//                api.meMessage(channel, "s'est réveillé");
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+        // TODO Décommenter en déploiement publique
+//		channels.forEach(channel -> {
+//			try {
+//				api.meMessage(channel, "s'est réveillé");
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//		});
     }
 
     @Override
@@ -184,69 +185,6 @@ public class Guy extends Bot {
     }
 
     /**
-     * Récupération des réactions de l'utilisateur passé en paramètre
-     *
-     * @param user : utilisateur pour lequel rechercher ses réactions
-     * @return les réactions, et leurs comptes respectifs, de l'utilisateur passé en paramètre
-     */
-    private Map<String, Long> reactionsUser(String user) {
-        Map<String, Long> reactionsUser = new HashMap<>();
-        reactions.forEach(reaction -> {
-            List<String> users = reaction.getUsers();
-            if (users.contains(user))
-                reactionsUser.put(reaction.getName(), users.stream().filter(u -> u.equals(user)).count());
-        });
-        // Tri de la map
-        return reactionsUser.entrySet().stream()
-                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                        (oldValue, newValue) -> oldValue, HashMap::new));
-    }
-
-    /**
-     * Réponse à la commande !stats
-     * <p>
-     * Envoie les statistiques de l'utilisateur en terme d'utilisation d'emoji
-     *
-     * @param reactionsUser Liste d'association < emoji, nb d'utilisations > de l'utilisateur concerné
-     * @param channel       identifiant du channel sur lequel envoyer le message
-     * @param prefix        préfixe à utiliser dans le message (communément l'identifiant de l'utilisateur concerné dans les channels publiques)
-     */
-    private void sendReactionsMessage(Map<String, Long> reactionsUser, String channel, @Nullable String prefix) {
-        StringBuilder sb = new StringBuilder();
-        if (prefix != null) sb.append(prefix);
-
-        if (reactionsUser.isEmpty())
-            sb.append("Vous n'avez envoyé aucune réaction depuis mon réveil.");
-        else {
-            sb.append("Vos réactions depuis mon réveil :\\n");
-            reactionsUser.forEach((r, l) -> sb.append("\\t:").append(r).append(": : *")
-                    .append(l).append("*\\n"));
-        }
-        // Envoi du message
-        try {
-            sendMessage(sb.toString(), channel);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void sendHelpCmd(String channel) {
-        Log.info("Envoi des commandes de Guy sur le channel : " + channel);
-        List<String> cmds = new ArrayList<>();
-        cmds.add("Commandes : ");
-        Commands.cmdsMap.forEach((nom, desc) -> {
-            cmds.add("\\t*" + nom + "* _" + desc + "_");
-        });
-        // Envoi du message
-        try {
-            sendMessage(cmds, channel);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
      * Récupération de la première commande à exécuter dans le texte passé en paramètre
      *
      * @param text texte à analyser
@@ -335,49 +273,39 @@ public class Guy extends Bot {
         }
     }
 
-    private void sendInteractiveHelpCmd(String channel) {
-        Log.info("Envoi des commandes interactives de Guy sur le channel : " + channel);
-        String cmds = "{\n" +
-                "    \"text\": \"Would you like to play a game?\",\n" +
-                "    \"channel\":\"" + channel + "\",\n" +
-                "    \"attachments\": [\n" +
-                "        {\n" +
-                "            \"text\": \"Choose a game to play\",\n" +
-                "            \"fallback\": \"You are unable to choose a game\",\n" +
-                "            \"callback_id\": \"wopr_game\",\n" +
-                "            \"color\": \"#3AA3E3\",\n" +
-                "            \"attachment_type\": \"default\",\n" +
-                "            \"actions\": [\n" +
-                "                {\n" +
-                "                    \"name\": \"game\",\n" +
-                "                    \"text\": \"Chess\",\n" +
-                "                    \"type\": \"button\",\n" +
-                "                    \"value\": \"chess\"\n" +
-                "                },\n" +
-                "                {\n" +
-                "                    \"name\": \"game\",\n" +
-                "                    \"text\": \"Falken's Maze\",\n" +
-                "                    \"type\": \"button\",\n" +
-                "                    \"value\": \"maze\"\n" +
-                "                },\n" +
-                "                {\n" +
-                "                    \"name\": \"game\",\n" +
-                "                    \"text\": \"Thermonuclear War\",\n" +
-                "                    \"style\": \"danger\",\n" +
-                "                    \"type\": \"button\",\n" +
-                "                    \"value\": \"war\",\n" +
-                "                    \"confirm\": {\n" +
-                "                        \"title\": \"Are you sure?\",\n" +
-                "                        \"text\": \"Wouldn't you prefer a good game of chess?\",\n" +
-                "                        \"ok_text\": \"Yes\",\n" +
-                "                        \"dismiss_text\": \"No\"\n" +
-                "                    }\n" +
-                "                }\n" +
-                "            ]\n" +
-                "        }\n" +
-                "    ]\n" +
-                "}";
+    /**
+     * Récupération des réactions de l'utilisateur passé en paramètre
+     *
+     * @param user : utilisateur pour lequel rechercher ses réactions
+     * @return les réactions, et leurs comptes respectifs, de l'utilisateur passé en paramètre
+     */
+    private Map<String, Long> reactionsUser(String user) {
+        Map<String, Long> reactionsUser = new HashMap<>();
+        reactions.forEach(reaction -> {
+            List<String> users = reaction.getUsers();
+            if (users.contains(user))
+                reactionsUser.put(reaction.getName(), users.stream().filter(u -> u.equals(user)).count());
+        });
+        // Tri de la map
+        return reactionsUser.entrySet().stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                        (oldValue, newValue) -> oldValue, HashMap::new));
+    }
 
+    /**
+     * Réponse à la commande !help
+     * Envoie les commandes de Guy sur le channel passé en paramètre
+     *
+     * @param channel identifiant du channel
+     */
+    private void sendHelpCmd(String channel) {
+        Log.info("Envoi des commandes de Guy sur le channel : " + channel);
+        List<String> cmds = new ArrayList<>();
+        cmds.add("Commandes : ");
+        Commands.cmdsMap.forEach((nom, desc) -> {
+            cmds.add("\\t*" + nom + "* _" + desc + "_");
+        });
         // Envoi du message
         try {
             sendMessage(cmds, channel);
@@ -386,6 +314,32 @@ public class Guy extends Bot {
         }
     }
 
+    /**
+     * Réponse à la commande !stats
+     * <p>
+     * Envoie les statistiques de l'utilisateur en terme d'utilisation d'emoji
+     *
+     * @param reactionsUser Liste d'association < emoji, nb d'utilisations > de l'utilisateur concerné
+     * @param channel       identifiant du channel sur lequel envoyer le message
+     * @param prefix        préfixe à utiliser dans le message (communément l'identifiant de l'utilisateur concerné dans les channels publiques)
+     */
+    private void sendReactionsMessage(Map<String, Long> reactionsUser, String channel, @Nullable String prefix) {
+        StringBuilder sb = new StringBuilder();
+        if (prefix != null) sb.append(prefix);
+        if (reactionsUser.isEmpty())
+            sb.append("Vous n'avez envoyé aucune réaction depuis mon réveil.");
+        else {
+            sb.append("Vos réactions depuis mon réveil :\\n");
+            reactionsUser.forEach((r, l) -> sb.append("\\t:").append(r).append(": : *")
+                    .append(l).append("*\\n"));
+        }
+        // Envoi du message
+        try {
+            sendMessage(sb.toString(), channel);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * Réponse à la commande !files
@@ -454,6 +408,57 @@ public class Guy extends Bot {
                     true, null, null);
 
             sleep(15000);
+        }
+    }
+
+    private void sendInteractiveHelpCmd(String channel) {
+        Log.info("Envoi des commandes interactives de Guy sur le channel : " + channel);
+        String cmds = "{\n" +
+                "    \"text\": \"Would you like to play a game?\",\n" +
+                "    \"channel\":\"" + channel + "\",\n" +
+                "    \"attachments\": [\n" +
+                "        {\n" +
+                "            \"text\": \"Choose a game to play\",\n" +
+                "            \"fallback\": \"You are unable to choose a game\",\n" +
+                "            \"callback_id\": \"wopr_game\",\n" +
+                "            \"color\": \"#3AA3E3\",\n" +
+                "            \"attachment_type\": \"default\",\n" +
+                "            \"actions\": [\n" +
+                "                {\n" +
+                "                    \"name\": \"game\",\n" +
+                "                    \"text\": \"Chess\",\n" +
+                "                    \"type\": \"button\",\n" +
+                "                    \"value\": \"chess\"\n" +
+                "                },\n" +
+                "                {\n" +
+                "                    \"name\": \"game\",\n" +
+                "                    \"text\": \"Falken's Maze\",\n" +
+                "                    \"type\": \"button\",\n" +
+                "                    \"value\": \"maze\"\n" +
+                "                },\n" +
+                "                {\n" +
+                "                    \"name\": \"game\",\n" +
+                "                    \"text\": \"Thermonuclear War\",\n" +
+                "                    \"style\": \"danger\",\n" +
+                "                    \"type\": \"button\",\n" +
+                "                    \"value\": \"war\",\n" +
+                "                    \"confirm\": {\n" +
+                "                        \"title\": \"Are you sure?\",\n" +
+                "                        \"text\": \"Wouldn't you prefer a good game of chess?\",\n" +
+                "                        \"ok_text\": \"Yes\",\n" +
+                "                        \"dismiss_text\": \"No\"\n" +
+                "                    }\n" +
+                "                }\n" +
+                "            ]\n" +
+                "        }\n" +
+                "    ]\n" +
+                "}";
+
+        // Envoi du message
+        try {
+            sendMessage(cmds, channel);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
