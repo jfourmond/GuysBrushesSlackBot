@@ -1,5 +1,6 @@
 package runnable;
 
+import bot.Bot;
 import bot.Guy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,7 +19,7 @@ public class GuyLauncher {
     public static void main(String args[]) {
 
         WebSocketClient client = new WebSocketClient();
-        Guy socket;
+        Bot socket;
         try {
             socket = new Guy();
         } catch (Exception e) {

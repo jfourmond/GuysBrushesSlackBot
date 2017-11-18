@@ -1,6 +1,7 @@
 package bot;
 
 import api.SlackAPI;
+import api.impl.SlackAPIimpl;
 import beans.channels.ChannelType;
 import beans.events.Message;
 import org.apache.logging.log4j.LogManager;
@@ -18,7 +19,7 @@ public abstract class Bot {
     private static final Logger Log = LogManager.getLogger(Bot.class);
 
     // API SLACK
-    protected SlackAPI api = new SlackAPI(true);
+    protected SlackAPI api = new SlackAPIimpl(true);
 
     private static final String URL = "url";
     private static final String ID = "id";
@@ -119,6 +120,7 @@ public abstract class Bot {
             message = message.concat(t).concat("\\n");
         }
         message = message.concat("\",\"channel\" : \"" + channelId + "\"}");
+        Log.info(message);
         return session.getRemote().sendStringByFuture(message);
     }
 

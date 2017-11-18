@@ -17,10 +17,10 @@ public class Converter {
 	/**
 	 * Retourne le statut "ok" du JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return le statut "ok" du JSON
-	 * @throws Exception si une erreur est détectée lors de la lecture, ou s'il n'existe pas d'attribut "ok"
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return le statut "ok" du JSON
+     * @throws Exception si une erreur est détectée lors de la lecture, ou s'il n'existe pas d'attribut "ok"
+     */
 	public static boolean readOk(JsonReader reader) throws Exception {
 		String name = reader.nextName();
 		if (name.equals(OK))
@@ -31,10 +31,10 @@ public class Converter {
 	/**
 	 * Retourne l'erreur du JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return l'erreur du JSON
-	 * @throws Exception si une erreur est détectée lors de la lecture, ou s'il n'existe pas d'attribut "error"
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return l'erreur du JSON
+     * @throws Exception si une erreur est détectée lors de la lecture, ou s'il n'existe pas d'attribut "error"
+     */
 	public static String readError(JsonReader reader) throws Exception {
 		String name = reader.nextName();
 		if (name.equals(ERROR))
@@ -45,10 +45,10 @@ public class Converter {
 	/**
 	 * Lecture des channels dans le JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return une liste de {@link Channel}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return une liste de {@link Channel}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static List<Channel> readChannels(JsonReader reader) throws IOException {
 		List<Channel> channels = new ArrayList<>();
 		reader.beginArray();
@@ -61,10 +61,10 @@ public class Converter {
 	/**
 	 * Lecture du channel dans le JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return un {@link Channel}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return un {@link Channel}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static Channel readChannel(JsonReader reader) throws IOException {
 		String aux;
 		String id = null, name = null;
@@ -102,10 +102,10 @@ public class Converter {
 	/**
 	 * Retourne l'Event "message" du JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return l'Event "message" du JSON
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return l'Event "message" du JSON
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static Message readMessageSent(JsonReader reader) throws IOException {
 		String name;
 		String user = null, channel = null, text = null, subtype = null, timestamp = null;
@@ -137,10 +137,10 @@ public class Converter {
 	/**
 	 * Retourne l'Event "réaction_added" du JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return une {@link ReactionAdded}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return une {@link ReactionAdded}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static ReactionAdded readReactionAdded(JsonReader reader) throws IOException {
 		String name;
 		String user = null, itemTs = null, itemType = null, itemChannel = null, reaction = null, timestamp = null, itemUser = null;
@@ -191,10 +191,10 @@ public class Converter {
 	/**
 	 * Lecture des fichiers dans le JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return une liste de {@link File}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return une liste de {@link File}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static List<File> readFiles(JsonReader reader) throws IOException {
 		List<File> files = new ArrayList<>();
 		reader.beginArray();
@@ -207,10 +207,10 @@ public class Converter {
 	/**
 	 * Lecture du fichier dans le JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return un {@link File}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return un {@link File}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static File readFile(JsonReader reader) throws IOException {
 		String aux;
 		long created = 0;
@@ -246,10 +246,10 @@ public class Converter {
 	/**
 	 * Lecture du Paging dans le JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return un {@link Paging}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return un {@link Paging}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static Paging readPaging(JsonReader reader) throws IOException {
 		String name;
 		Integer count = null, total = null, page = null, pages = null;
@@ -281,10 +281,10 @@ public class Converter {
 	/**
 	 * Lecture des membres dans le JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return une liste de {@link Member}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return une liste de {@link Member}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static List<Member> readMembers(JsonReader reader) throws IOException {
 		List<Member> users = new ArrayList<>();
 		reader.beginArray();
@@ -297,10 +297,10 @@ public class Converter {
 	/**
 	 * Lecture du membre dans le JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return un {@link Member}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return un {@link Member}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static Member readMember(JsonReader reader) throws IOException {
 		String aux;
 		String id = null, name = null, realName = null;
@@ -339,10 +339,10 @@ public class Converter {
 	/**
 	 * Lecture de l'attribut "self" du JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return le contenu de l'attribut "self" du JSON
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return le contenu de l'attribut "self" du JSON
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static String readSelf(JsonReader reader) throws IOException {
 		String name, self = null;
 		reader.beginObject();
@@ -364,10 +364,10 @@ public class Converter {
 	/**
 	 * Lecture du message du JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return un {@link Message}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return un {@link Message}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static Message readMessage(JsonReader reader) throws IOException {
 		String name;
 		String user = null, channel = null, text = null, subtype = null, timestamp = null;
@@ -410,10 +410,10 @@ public class Converter {
 	/**
 	 * Lecture des réactions dans le JSON
 	 *
-	 * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return une liste de {@link Reaction}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JsonReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return une liste de {@link Reaction}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static List<Reaction> readReactions(JsonReader reader) throws IOException {
 		List<Reaction> reactions = new ArrayList<>();
 		reader.beginArray();
@@ -426,10 +426,10 @@ public class Converter {
 	/**
 	 * Lecture d'une réaction dans le JSON
 	 *
-	 * @param reader le JSONReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return une {@link Reaction}
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JSONReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return une {@link Reaction}
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static Reaction readReaction(JsonReader reader) throws IOException {
 		String aux, name = null;
 		ArrayList<String> users = null;
@@ -459,10 +459,10 @@ public class Converter {
 	/**
 	 * Lecture des utilisateurs d'une réaction dans le JSON
 	 *
-	 * @param reader le JSONReader précédemment utilisé (pour pouvoir poursuivre le traitement)
-	 * @return une liste d'utilisateurs
-	 * @throws IOException si une erreur est détectée lors de la lecture
-	 */
+     * @param reader le JSONReader précédemment utilisé (pour pouvoir poursuivre le traitement)
+     * @return une liste d'utilisateurs
+     * @throws IOException si une erreur est détectée lors de la lecture
+     */
 	public static ArrayList<String> readReactionUsers(JsonReader reader) throws IOException {
 		ArrayList<String> users = new ArrayList<>();
 		reader.beginArray();
@@ -472,21 +472,21 @@ public class Converter {
 		return users;
 	}
 
-	/**
-	 * Conversion du tableau de {@link Attachment} en une chaîne de caractère JSON
-	 *
-	 * @param attachments un tableau de pièce jointe, {@link Attachment}
-	 * @return un chaîne de caractère JSON
-	 */
-	public static String AttachmentsToJson(Attachment[] attachments) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("[");
-		for (int i = 0; i < attachments.length; i++) {
-			sb.append(attachments[i].json());
-			if (i != attachments.length - 1)
-				sb.append(",");
-		}
-		sb.append("]");
-		return sb.toString();
-	}
+    /**
+     * Conversion du tableau de {@link Attachment} en une chaîne de caractère JSON
+     *
+     * @param attachments un tableau de pièce jointe, {@link Attachment}
+     * @return un chaîne de caractère JSON
+     */
+    public static String AttachmentsToJson(Attachment[] attachments) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0; i < attachments.length; i++) {
+            sb.append(attachments[i].json());
+            if (i != attachments.length - 1)
+                sb.append(",");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
 }
