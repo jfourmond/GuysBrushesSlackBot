@@ -217,7 +217,6 @@ public class Guy extends Bot {
 	}
 
 	private void messageTreatment(Message M) throws Exception {
-		// TODO Gestion de la première commande uniquement
 		String cmd = getCmd(M.getText());
 		if (cmd == null) {
 			// Interaction avec l'utilisateur lorsqu'il n'exécute pas de commande
@@ -408,57 +407,6 @@ public class Guy extends Bot {
 					true, null, null);
 
 			sleep(15000);
-		}
-	}
-
-	private void sendInteractiveHelpCmd(String channel) {
-		Log.info("Envoi des commandes interactives de Guy sur le channel : " + channel);
-		String cmds = "{\n" +
-				"    \"text\": \"Would you like to play a game?\",\n" +
-				"    \"channel\":\"" + channel + "\",\n" +
-				"    \"attachments\": [\n" +
-				"        {\n" +
-				"            \"text\": \"Choose a game to play\",\n" +
-				"            \"fallback\": \"You are unable to choose a game\",\n" +
-				"            \"callback_id\": \"wopr_game\",\n" +
-				"            \"color\": \"#3AA3E3\",\n" +
-				"            \"attachment_type\": \"default\",\n" +
-				"            \"actions\": [\n" +
-				"                {\n" +
-				"                    \"name\": \"game\",\n" +
-				"                    \"text\": \"Chess\",\n" +
-				"                    \"type\": \"button\",\n" +
-				"                    \"value\": \"chess\"\n" +
-				"                },\n" +
-				"                {\n" +
-				"                    \"name\": \"game\",\n" +
-				"                    \"text\": \"Falken's Maze\",\n" +
-				"                    \"type\": \"button\",\n" +
-				"                    \"value\": \"maze\"\n" +
-				"                },\n" +
-				"                {\n" +
-				"                    \"name\": \"game\",\n" +
-				"                    \"text\": \"Thermonuclear War\",\n" +
-				"                    \"style\": \"danger\",\n" +
-				"                    \"type\": \"button\",\n" +
-				"                    \"value\": \"war\",\n" +
-				"                    \"confirm\": {\n" +
-				"                        \"title\": \"Are you sure?\",\n" +
-				"                        \"text\": \"Wouldn't you prefer a good game of chess?\",\n" +
-				"                        \"ok_text\": \"Yes\",\n" +
-				"                        \"dismiss_text\": \"No\"\n" +
-				"                    }\n" +
-				"                }\n" +
-				"            ]\n" +
-				"        }\n" +
-				"    ]\n" +
-				"}";
-
-		// Envoi du message
-		try {
-			sendMessage(cmds, channel);
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 }
