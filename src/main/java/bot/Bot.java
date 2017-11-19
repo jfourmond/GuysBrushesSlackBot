@@ -1,7 +1,7 @@
 package bot;
 
 import api.SlackAPI;
-import api.impl.SlackAPIimpl;
+import api.impl.SlackAPIImpl;
 import beans.channels.ChannelType;
 import beans.events.Message;
 import org.apache.logging.log4j.LogManager;
@@ -19,7 +19,7 @@ public abstract class Bot {
 	private static final Logger Log = LogManager.getLogger(Bot.class);
 
 	// API SLACK
-	protected SlackAPI api = new SlackAPIimpl(true);
+	protected SlackAPI api = new SlackAPIImpl(true);
 
 	private static final String URL = "url";
 	private static final String ID = "id";

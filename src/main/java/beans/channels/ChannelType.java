@@ -1,7 +1,7 @@
 package beans.channels;
 
 public enum ChannelType {
-    PRIVATE,
-    PUBLIC,
-    DIRECT_MESSAGE
+	PRIVATE,
+	PUBLIC,
+	DIRECT_MESSAGE
 }

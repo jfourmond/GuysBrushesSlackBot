@@ -66,7 +66,7 @@ public class Message extends Event {
 	//  METHODES
 	public int countReactions() {
 		int count = 0;
-		for(Reaction reaction : reactions)
+		for (Reaction reaction : reactions)
 			count += reaction.getCount();
 		return count;
 	}

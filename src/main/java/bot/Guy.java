@@ -375,7 +375,7 @@ public class Guy extends Bot {
 		Long timestamp7DaysAgo = sevenDaysAgo.getEpochSecond();
 
 		Channel channel = api.getChannelById(channelId);
-		List<Message> messages = api.fetchAllMessages(channel.getId(), null, timestamp7DaysAgo);
+		List<Message> messages = api.fetchAllMessages(channel.getId(), 1000, timestamp7DaysAgo);
 		System.out.println(messages.size() + " MESSAGES");
 		// FILTRE
 		messages = messages.stream().filter(message -> message.getReactions() != null).collect(Collectors.toList());
@@ -406,7 +406,7 @@ public class Guy extends Bot {
 					null, null, null, null, null,
 					true, null, null);
 
-			sleep(15000);
+			sleep(5000);
 		}
 	}
 }
