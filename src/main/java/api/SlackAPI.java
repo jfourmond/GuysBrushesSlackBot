@@ -24,7 +24,6 @@ public interface SlackAPI {
 	
 	boolean bot = true;
 	
-	
 	//  GETTERS
 	boolean isBot();
 	
@@ -202,6 +201,20 @@ public interface SlackAPI {
 	 * @see <a href="https://api.slack.com/methods/reactions.add">https://api.slack.com/methods/reactions.add</a>
 	 */
 	void addReaction(String reactionName, @Nullable String channelId, @Nullable String file, @Nullable String fileComment, @Nullable String timestamp) throws Exception;
+	
+	/**
+	 * Appel à la méthode "reactions.remove"
+	 * Supprime une réaction
+	 *
+	 * @param name        réaction à ajouter (code emoji)
+	 * @param channelId   identifiant du channel
+	 * @param file        fichier de la réaction
+	 * @param fileComment commentaire du fichier de la réaction
+	 * @param timestamp   identifiant du message de la réaction
+	 * @throws Exception si l'URL est malformée ou si la requête retourne une erreur
+	 * @see <a href="https://api.slack.com/methods/reactions.add">https://api.slack.com/methods/reactions.remove</a>
+	 */
+	void removeReaction(String name, @Nullable String channelId, @Nullable String file, @Nullable String fileComment, @Nullable String timestamp) throws Exception;
 	
 	/**
 	 * Appel à la méthode "channels.history"
