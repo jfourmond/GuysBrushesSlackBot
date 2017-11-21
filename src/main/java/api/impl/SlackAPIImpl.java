@@ -31,12 +31,9 @@ import static api.URLParameters.USER;
 import static converter.Converter.*;
 
 public class SlackAPIImpl implements SlackAPI {
-	
 	private boolean bot;
 	
-	
 	private JsonReader reader = null;
-	
 	
 	private String stringUrl = "";
 	private String token = "";
@@ -359,7 +356,7 @@ public class SlackAPIImpl implements SlackAPI {
 	}
 	
 	@Override
-	public boolean updateMEssage(String channelId, String text, String ts, @Nullable Boolean asUser, @Nullable Attachment[] attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception {
+	public void updateMEssage(String channelId, String text, String ts, @Nullable Boolean asUser, @Nullable Attachment[] attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception {
 		Log.info("Edition d'un message");
 		// Construction des paramètres
 		Map<String, String> parameters = new HashMap<>();
@@ -385,8 +382,6 @@ public class SlackAPIImpl implements SlackAPI {
 		} else
 			while (reader.hasNext()) reader.skipValue();
 		reader.endObject();
-		
-		return ok;
 	}
 	
 	@Override

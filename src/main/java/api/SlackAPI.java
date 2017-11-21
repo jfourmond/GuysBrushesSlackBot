@@ -166,11 +166,10 @@ public interface SlackAPI {
 	 * @param attachments Un tableau JSON de pièce jointes, {@link Attachment} see <a href="https://api.slack.com/docs/message-attachments">https://api.slack.com/docs/message-attachments</a>
 	 * @param linkNames   Cherche et lie les noms des channels et des utilisateurs
 	 * @param parse       Modifie la manière dont sont traités les messages
-	 * @return {@code true} si le message a pu être édité
 	 * @throws Exception si l'URL est mal formée
 	 * @see <a href="https://api.slack.com/methods/chat.update">https://api.slack.com/methods/chat.update</a>
 	 */
-	boolean updateMEssage(String channelId, String text, String ts, @Nullable Boolean asUser, @Nullable Attachment[] attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception;
+	void updateMEssage(String channelId, String text, String ts, @Nullable Boolean asUser, @Nullable Attachment[] attachments, @Nullable Boolean linkNames, @Nullable String parse) throws Exception;
 	
 	/**
 	 * Appel à la méthode "chat.postEphemeral"
