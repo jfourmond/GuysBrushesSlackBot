@@ -12,6 +12,7 @@ public class Commands {
 		aMap.put("!help", "pour apprendre tout ce que j'ai à vous offrir :heart:");
 		aMap.put("!plop", "plop");
 		aMap.put("!remaining", "le temps qu'il me reste...");
+		aMap.put("!say", "un message anonyme a passé ? :wink:");
 		aMap.put("!stats", " statistiques des réactions");
 		aMap.put("!top3", "pour avoir le top 3 des messages les plus populaires");
 		cmdsMap = Collections.unmodifiableMap(aMap);
@@ -22,6 +23,7 @@ public class Commands {
 	public static final String CMD_HELP = "!help";
 	public static final String CMD_PLOP = "!plop";
 	public static final String CMD_REMAINING = "!remaining";
+	public static final String CMD_SAY = "!say";
 	public static final String CMD_STATS = "!stats";
 	public static final String CMD_TOP_3 = "!top3";
 	
@@ -32,6 +34,7 @@ public class Commands {
 				CMD_HELP,
 				CMD_PLOP,
 				CMD_REMAINING,
+				CMD_SAY,
 				CMD_STATS,
 				CMD_TOP_3);
 	}

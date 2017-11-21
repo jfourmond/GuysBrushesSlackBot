@@ -257,6 +257,10 @@ public class Guy extends Bot {
 					long remaining = duration - d.toMinutes();
 					sendMessage("Il me reste " + remaining + " minutes...", M.getChannel());
 					break;
+				case CMD_SAY:
+					// COMMANDE : !say
+					// TODO Envoie un message en tant que bot
+					break;
 				case CMD_STATS:
 					// COMMANDE : !stats
 					// Récupération des stats de l'utilisateur
