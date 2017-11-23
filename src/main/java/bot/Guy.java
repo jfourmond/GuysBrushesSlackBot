@@ -44,6 +44,7 @@ public class Guy extends Bot {
 	//  INFORMATION DE SESSION
 	private List<Reaction> reactions;
 	private List<String> channels;
+	private Map<String, LocalDateTime> anonymousMessage;
 	
 	// DATES
 	private LocalDateTime startDate;
@@ -60,6 +61,7 @@ public class Guy extends Bot {
 	protected void initialisation() throws Exception {
 		super.initialisation();
 		reactions = new ArrayList<>();
+		anonymousMessage = new HashMap<>();
 		//  RECHERCHE DES CHANNELS
 		channels = new ArrayList<>();
 		api.listChannels().forEach(channel -> {
@@ -72,13 +74,13 @@ public class Guy extends Bot {
 	public void onConnect(Session session) {
 		super.onConnect(session);
 		// TODO Décommenter en déploiement publique
-//		channels.forEach(channel -> {
-//			try {
-//				api.meMessage(channel, "s'est réveillé");
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//			}
-//		});
+		channels.forEach(channel -> {
+			try {
+				api.meMessage(channel, "s'est réveillé");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
 	}
 	
 	@Override
@@ -257,18 +259,9 @@ public class Guy extends Bot {
 					sendHelpCmd(M.getChannel());
 					break;
 				case CMD_PLOP:
-					// COMMANDE : !plop
+					// COMMANDE : !plop [Number]
 					List<String> args = getCmdArg(CMD_PLOP, M.getText());
-					System.out.println(args);
-					if (args == null)
-						sendMessage("plop", M.getChannel());
-					else {
-						Integer nbPlop = Integer.parseInt(args.get(0));
-						StringBuilder sb = new StringBuilder();
-						for (int i = 0; i < nbPlop; i++)
-							sb.append("plop ");
-						sendMessage(sb.toString(), M.getChannel());
-					}
+					sendPlop(args, M.getChannel());
 					break;
 				case CMD_REMAINING:
 					// COMMANDE : !remaining
@@ -280,8 +273,7 @@ public class Guy extends Bot {
 				case CMD_SAY:
 					// COMMANDE : !say
 					String message = getCmdArg(CMD_SAY, M.getText()).get(0);
-					System.out.println(message);
-					// TODO Envoie un message en tant que bot
+					say(message, M.getChannel(), M.getUser(), M.getTimestamp());
 					break;
 				case CMD_STATS:
 					// COMMANDE : !stats
@@ -340,8 +332,60 @@ public class Guy extends Bot {
 	}
 	
 	/**
+	 * Réponse à la commande !plop [Number]
+	 *
+	 * @param args      argument(s) passé(s) à la commande
+	 * @param channelId identifiant du channel sur lequel envoyé le message
+	 */
+	private void sendPlop(@Nullable List<String> args, String channelId) {
+		try {
+			if (args == null)
+				sendMessage("plop", channelId);
+			else {
+				Integer nbPlop = Integer.parseInt(args.get(0));
+				StringBuilder sb = new StringBuilder();
+				for (int i = 0; i < nbPlop; i++)
+					sb.append("plop ");
+				sendMessage(sb.toString(), channelId);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Réponse à la commande !say [message]
+	 *
+	 * @param message          message à envoyer
+	 * @param currentChannelId le channel de la commande
+	 * @param userId           l'utilisateur faisant appel à la commande
+	 * @param ts               timestamp du message faisant appel à la commande
+	 */
+	private void say(String message, String currentChannelId, String userId, String ts) {
+		boolean ok = true;
+		LocalDateTime now = LocalDateTime.now();
+		if (anonymousMessage.containsKey(userId)) {
+			LocalDateTime d = anonymousMessage.get(userId);
+			Duration between = Duration.between(now, d);
+			if (between.toHours() < 24)
+				ok = false;
+		}
+		
+		try {
+			if (ok) {
+				sendMessage(message, currentChannelId);
+				anonymousMessage.put(userId, now);
+			} else
+				api.postEphemeral(currentChannelId, "Veuillez attendre 24h pour envoyer un message anonyme", userId, true, null, null, null);
+			// Suppression du message
+			api.deleteMessage(currentChannelId, ts, true);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
 	 * Réponse à la commande !stats
-	 * <p>
 	 * Envoie les statistiques de l'utilisateur en terme d'utilisation d'emoji
 	 *
 	 * @param reactionsUser Liste d'association < emoji, nb d'utilisations > de l'utilisateur concerné
