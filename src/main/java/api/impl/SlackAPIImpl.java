@@ -274,6 +274,27 @@ public class SlackAPIImpl implements SlackAPI {
 	}
 	
 	@Override
+	public void deleteFile(String fileId) throws Exception {
+		Log.info("Suppression d'un fichier");
+		// Construction des paramètres
+		Map<String, String> parameters = new HashMap<>();
+		parameters.put(FILE, fileId);
+		// Construction de l'URL
+		buildUrl(METHOD_FILES_DELETE, parameters, false);
+		// Lecture de l'URL
+		String json = readUrl();
+		reader = new JsonReader(new StringReader(json));
+		reader.beginObject();
+		boolean ok = readOk(reader);
+		if (!ok) {
+			System.err.println(json);
+			// Récupération du message d'erreur
+			throw new Exception(readError(reader));
+		}
+		reader.endObject();
+	}
+	
+	@Override
 	public List<Member> listMembers() throws Exception {
 		Log.info("Listage des membres");
 		buildUrl(METHOD_LIST_USERS, null, false);
@@ -313,7 +334,7 @@ public class SlackAPIImpl implements SlackAPI {
 	
 	@Override
 	public void deleteMessage(String channelId, String ts, @Nullable Boolean asUser) throws Exception {
-		Log.info("Edition d'un message");
+		Log.info("Suppression d'un message");
 		// Construction des paramètres
 		Map<String, String> parameters = new HashMap<>();
 		parameters.put(CHANNEL, channelId);

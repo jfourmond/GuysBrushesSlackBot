@@ -9,6 +9,7 @@ public class Methods {
 	public static final String METHOD_CHAT_POST_MESSAGE = "chat.postMessage";
 	public static final String METHOD_CHAT_ME_MESSAGE = "chat.meMessage";
 	public static final String METHOD_CHAT_UPDATE = "chat.update";
+	public static final String METHOD_FILES_DELETE = "files.delete";
 	public static final String METHOD_LIST_CHANNELS = "channels.list";
 	public static final String METHOD_LIST_FILES = "files.list";
 	public static final String METHOD_LIST_USERS = "users.list";

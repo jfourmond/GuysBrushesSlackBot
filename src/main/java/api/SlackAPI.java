@@ -112,6 +112,15 @@ public interface SlackAPI {
 	Map.Entry<List<File>, Paging> listFiles(@Nullable String channelId, @Nullable Integer count, @Nullable Integer page, @Nullable String userId) throws Exception;
 	
 	/**
+	 * Appel à la méthode "files.delete"
+	 * Supprime un fichier
+	 *
+	 * @param fileId identifiant du fichier à supprimer
+	 * @throws Exception Si l'URL est mal formée
+	 */
+	void deleteFile(String fileId) throws Exception;
+	
+	/**
 	 * Appel à la méthode "users.list"
 	 * Liste les membres
 	 *
@@ -128,6 +137,7 @@ public interface SlackAPI {
 	 * @param channelId identifiant du channel du message à supprimer
 	 * @param ts        timestamp du message à supprimer
 	 * @param asUser    {@code true} pour supprimer le message comme un utilisateur authentifié. (Les bots sont considérés comme des utilisateurs authentifiés)
+	 * @throws Exception si l'URL est malformée
 	 * @see <a href="https://api.slack.com/methods/chat.delete">https://api.slack.com/methods/chat.delete</a>
 	 */
 	void deleteMessage(String channelId, String ts, @Nullable Boolean asUser) throws Exception;
