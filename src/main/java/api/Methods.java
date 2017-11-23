@@ -4,6 +4,7 @@ public class Methods {
 	public static final String METHOD_API_TEST = "api.test";
 	public static final String METHOD_AUTHENTIFICATION_TEST = "auth.test";
 	public static final String METHOD_CHANNELS_HISTORY = "channels.history";
+	public static final String METHOD_CHAT_DELETE = "chat.delete";
 	public static final String METHOD_CHAT_POST_EPHEMERAL = "chat.postEphemeral";
 	public static final String METHOD_CHAT_POST_MESSAGE = "chat.postMessage";
 	public static final String METHOD_CHAT_ME_MESSAGE = "chat.meMessage";

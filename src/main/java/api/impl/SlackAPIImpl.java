@@ -312,6 +312,29 @@ public class SlackAPIImpl implements SlackAPI {
 	}
 	
 	@Override
+	public void deleteMessage(String channelId, String ts, @Nullable Boolean asUser) throws Exception {
+		Log.info("Edition d'un message");
+		// Construction des paramètres
+		Map<String, String> parameters = new HashMap<>();
+		parameters.put(CHANNEL, channelId);
+		parameters.put(TS, ts);
+		if (asUser != null) parameters.put(AS_USER, asUser.toString());
+		// Construction de l'URL
+		buildUrl(METHOD_CHAT_DELETE, parameters, false);
+		// Lecture de l'URL
+		String json = readUrl();
+		reader = new JsonReader(new StringReader(json));
+		reader.beginObject();
+		boolean ok = readOk(reader);
+		if (!ok) {
+			System.err.println(json);
+			// Récupération du message d'erreur
+			throw new Exception(readError(reader));
+		}
+		reader.endObject();
+	}
+	
+	@Override
 	public String postMessage(String channelId, String text, @Nullable Boolean asUser, @Nullable Attachment[] attachments,
 							  @Nullable String iconEmoji, @Nullable String iconUrl, @Nullable Boolean replyBroadcast,
 							  @Nullable String threadTS, @Nullable Boolean unfurlLinks, @Nullable Boolean unfurlMedia,

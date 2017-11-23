@@ -122,6 +122,17 @@ public interface SlackAPI {
 	List<Member> listMembers() throws Exception;
 	
 	/**
+	 * Appel à la méthode "chat.delete"
+	 * Supprime le message portant le timestamp dans le channel passé en paramètre
+	 *
+	 * @param channelId identifiant du channel du message à supprimer
+	 * @param ts        timestamp du message à supprimer
+	 * @param asUser    {@code true} pour supprimer le message comme un utilisateur authentifié. (Les bots sont considérés comme des utilisateurs authentifiés)
+	 * @see <a href="https://api.slack.com/methods/chat.delete">https://api.slack.com/methods/chat.delete</a>
+	 */
+	void deleteMessage(String channelId, String ts, @Nullable Boolean asUser) throws Exception;
+	
+	/**
 	 * Appel à la méthode "chat.postMessage"
 	 * Poste un message dans un channel
 	 *
