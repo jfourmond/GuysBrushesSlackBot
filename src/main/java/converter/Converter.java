@@ -214,7 +214,7 @@ public class Converter {
 	public static File readFile(JsonReader reader) throws IOException {
 		String aux;
 		long created = 0;
-		String id = null, name = null, title = null, user = null;
+		String id = null, permalink = null, name = null, title = null, user = null;
 		reader.beginObject();
 		while (reader.hasNext()) {
 			aux = reader.nextName();
@@ -228,6 +228,9 @@ public class Converter {
 				case NAME:
 					name = reader.nextString();
 					break;
+				case PERMALINK:
+					permalink = reader.nextString();
+					break;
 				case TITLE:
 					title = reader.nextString();
 					break;
@@ -240,7 +243,7 @@ public class Converter {
 			}
 		}
 		reader.endObject();
-		return new File(id, created, name, title, user);
+		return new File(id, created, name, title, user, permalink);
 	}
 	
 	/**

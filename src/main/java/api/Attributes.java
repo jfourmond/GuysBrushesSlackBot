@@ -20,6 +20,7 @@ public class Attributes {
 	public static final String PAGE = "page";
 	public static final String PAGES = "pages";
 	public static final String PAGING = "paging";
+	public static final String PERMALINK = "permalink";
 	public static final String REACTION = "reaction";
 	public static final String REACTIONS = "reactions";
 	public static final String REAL_NAME = "real_name";

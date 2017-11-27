@@ -6,13 +6,15 @@ public class File {
 	private String name;
 	private String title;
 	private String user;
+	private String permalink;
 	
-	public File(String id, long created, String name, String title, String user) {
+	public File(String id, long created, String name, String title, String user, String permalink) {
 		this.id = id;
 		this.created = created;
 		this.name = name;
 		this.title = title;
 		this.user = user;
+		this.permalink = permalink;
 	}
 	
 	//  GETTERS
@@ -36,6 +38,10 @@ public class File {
 		return user;
 	}
 	
+	public String getPermalink() {
+		return permalink;
+	}
+	
 	//  SETTERS
 	public void setId(String id) {
 		this.id = id;
@@ -57,8 +63,11 @@ public class File {
 		this.user = user;
 	}
 	
-	//  METHODES
+	public void setPermalink(String permalink) {
+		this.permalink = permalink;
+	}
 	
+	//  METHODES
 	@Override
 	public String toString() {
 		return "File{" +
@@ -67,6 +76,7 @@ public class File {
 				", name='" + name + '\'' +
 				", title='" + title + '\'' +
 				", user='" + user + '\'' +
+				", permalink='" + permalink + '\'' +
 				'}';
 	}
 }
