@@ -5,6 +5,7 @@ import java.util.*;
 public class Commands {
 	public static final String CMD_AWAKE = "!awake";
 	public static final String CMD_FILES = "!files";
+		public static final int CMD_FILES_ARGUMENT = 2;
 	public static final String CMD_HELP = "!help";
 	public static final String CMD_PLOP = "!plop";
 		public static final int CMD_PLOP_ARGUMENT = 1;
@@ -43,6 +44,8 @@ public class Commands {
 	
 	public static int getCmdArgumentNb(String cmd) {
 		switch(cmd) {
+			case CMD_FILES:
+				return CMD_FILES_ARGUMENT;
 			case CMD_PLOP:
 				return CMD_PLOP_ARGUMENT;
 			case CMD_SAY:

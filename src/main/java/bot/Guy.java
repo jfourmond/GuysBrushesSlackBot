@@ -74,13 +74,13 @@ public class Guy extends Bot {
 	public void onConnect(Session session) {
 		super.onConnect(session);
 		// TODO Décommenter en déploiement publique
-		channels.forEach(channel -> {
-			try {
-				api.meMessage(channel, "s'est réveillé");
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		});
+//		channels.forEach(channel -> {
+//			try {
+//				api.meMessage(channel, "s'est réveillé");
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//		});
 	}
 	
 	@Override
@@ -132,6 +132,12 @@ public class Guy extends Bot {
 						break;
 				}
 			} catch (Exception E) {
+				try {
+					api.postEphemeral(M.getChannel(), "Votre demande n'a pas pu être traitée, veuillez essayer ultérieurement",
+							M.getUser(), true, null, null, null);
+				} catch (Exception EE) {
+					EE.printStackTrace();
+				}
 				E.printStackTrace();
 			}
 		}
@@ -225,6 +231,13 @@ public class Guy extends Bot {
 			return Collections.singletonList(text);
 		if (argNb == 1)
 			return Collections.singletonList(text.split(" ")[0]);
+		if (argNb > 1) {
+			List<String> list = new ArrayList<>();
+			for (String txt : text.split(" "))
+				if (!txt.isEmpty())
+					list.add(txt);
+			return list;
+		}
 		return null;
 	}
 	
@@ -242,6 +255,7 @@ public class Guy extends Bot {
 			}
 		} else {
 			String prefix = null;
+			List<String> args;
 			if (isPublicChannel(M.getChannel()))
 				prefix = "<@" + M.getUser() + "> : ";
 			switch (cmd) {
@@ -252,7 +266,8 @@ public class Guy extends Bot {
 				case CMD_FILES:
 					// COMMANDE : !files
 					List<File> files = api.listAllFiles(null, null, M.getUser());
-					sendFilesInfo(files, M.getChannel(), prefix);
+					args = getCmdArg(CMD_FILES, M.getText());
+					sendFilesInfo(files, M.getChannel(), prefix, args);
 					break;
 				case CMD_HELP:
 					// COMMANDE : !help
@@ -260,7 +275,7 @@ public class Guy extends Bot {
 					break;
 				case CMD_PLOP:
 					// COMMANDE : !plop [Number]
-					List<String> args = getCmdArg(CMD_PLOP, M.getText());
+					args = getCmdArg(CMD_PLOP, M.getText());
 					sendPlop(args, M.getChannel());
 					break;
 				case CMD_REMAINING:
@@ -376,7 +391,8 @@ public class Guy extends Bot {
 				sendMessage(message, currentChannelId);
 				anonymousMessage.put(userId, now);
 			} else
-				api.postEphemeral(currentChannelId, "Veuillez attendre 24h pour envoyer un message anonyme", userId, true, null, null, null);
+				api.postEphemeral(currentChannelId, "Veuillez attendre 24h pour envoyer un message anonyme", userId,
+						true, null, null, null);
 			// Suppression du message
 			api.deleteMessage(currentChannelId, ts, true);
 		} catch (Exception e) {
@@ -416,17 +432,91 @@ public class Guy extends Bot {
 	 * @param files   Liste de fichiers de l'utilisateur concerné
 	 * @param channel identifiant du channel sur lequel envoyer le message
 	 * @param prefix  préfixe à utiliser dans le message (communément l'identifiant de l'utilisateur concerné dans les channels publiques)
+	 * @param args    arguments optionnels à la commande
 	 */
-	private void sendFilesInfo(List<File> files, String channel, @Nullable String prefix) {
+	private void sendFilesInfo(List<File> files, String channel, @Nullable String prefix, List<String> args) {
 		StringBuilder sb = new StringBuilder();
 		if (prefix != null) sb.append(prefix);
-		if (files.isEmpty())
-			sb.append("Vous n'avez aucun fichier sur le Slack.");
-		else
-			sb.append("Vos possédez ").append(files.size()).append(" fichiers sur le Slack.");
+		if (args.isEmpty()) {
+			if (files.isEmpty())
+				sb.append("Vous n'avez aucun fichier sur le Slack.");
+			else
+				sb.append("Vous possédez ").append(files.size()).append(" fichiers sur le Slack.");
+		} else {
+			// VIDE : DONNER LE COMPTE
+			// LIST : LISTER LES FICHIERS
+			// DELETE : SUPPRIMER LES FICHIERS
+			// 	avec arguments : - ALL : supprimer tout
+			//					 - OLDER [N] les N plus vieux
+			//					 - YOUNGER [N] les N plus récents
+			String arg = args.get(0).toLowerCase();
+			String y = null;
+			int n = 0;
+			if (args.size() >= 2)
+				y = args.get(1).toLowerCase();
+			if (args.size() >= 3)
+				n = Integer.parseInt(args.get(2));
+			
+			System.out.println(arg);
+			System.out.println(y);
+			System.out.println(n);
+			
+			if (y != null) {
+				switch (y.toLowerCase()) {
+					case "all":
+						if (arg.equals("list"))
+							for (File file : files)
+								sb.append("<").append(file.getPermalink()).append("|").append(file.getTitle()).append(">").append("\n");
+						if (arg.equals("delete")) {
+							for (File file : files)
+								try {
+									api.deleteFile(file.getId());
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							sb.append("Tous vos fichiers ont été supprimés");
+						}
+						break;
+					case "oldest":
+						files.sort(Comparator.comparingLong(File::getCreated));
+						
+						if (arg.equals("list") && n != 0)
+							for (int i = 0; i < n; i++)
+								sb.append("<").append(files.get(i).getPermalink()).append("|").append(files.get(i).getTitle()).append(">").append("\n");
+						if (arg.equals("delete") && n != 0) {
+							for (int i = 0; i < n; i++)
+								try {
+									api.deleteFile(files.get(i).getId());
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							sb.append("Vos ").append(n).append(" plus vieux fichiers ont été supprimés");
+						}
+						break;
+					case "latest":
+						files.sort((File f1, File f2) -> Long.compare(f2.getCreated(), f1.getCreated()));
+						if (arg.equals("list") && n != 0)
+							for (int i = 0; i < n; i++)
+								sb.append("<").append(files.get(i).getPermalink()).append("|").append(files.get(i).getTitle()).append(">").append("\n");
+						if (arg.equals("delete") && n != 0) {
+							for (int i = 0; i < n; i++)
+								try {
+									api.deleteFile(files.get(i).getId());
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							sb.append("Vos ").append(n).append(" plus récents fichiers ont été supprimés");
+						}
+						break;
+				}
+			}
+		}
+		
 		// Envoi du message
 		try {
-			sendMessage(sb.toString(), channel);
+			if (!sb.toString().isEmpty())
+				api.postMessage(channel, sb.toString(), true, null, null, null, null, null, null, false, null);
+			// sendMessage(sb.toString(), channel);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
